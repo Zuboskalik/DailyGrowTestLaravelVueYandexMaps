@@ -124,17 +124,17 @@
 
 ## Phase 7: Final README.md & Deployment Guide (без Docker)
 
-- [ ] **7.1** Корневой `README.md`: описание проекта, ссылка на `.sdd/spec.md` и `.sdd/plan.md`, структура монорепозитория (`./backend`, `./frontend`, `./.sdd`).
+- [x] **7.1** Корневой `README.md`: описание проекта, ссылка на `.sdd/spec.md` и `.sdd/plan.md`, структура монорепозитория (`./backend`, `./frontend`, `./.sdd`).
   DoD: файл существует в корне, содержит рабочие относительные ссылки на `.sdd/*.md`.
-- [ ] **7.2** Раздел «Backend setup»: `composer install`, копирование `.env.example` → `.env`, `php artisan key:generate`, настройка MySQL-подключения (`127.0.0.1:3306`, `DailyGrowTestLaravel`, `mysql`/`mysql`), `php artisan migrate --seed`.
+- [x] **7.2** Раздел «Backend setup»: `composer install`, копирование `.env.example` → `.env`, `php artisan key:generate`, настройка MySQL-подключения (`127.0.0.1:3306`, `DailyGrowTestLaravel`, `mysql`/`mysql`), `php artisan migrate --seed`.
   DoD: свежий клон репозитория, выполнение шагов по инструкции с нуля приводит к рабочей БД с сид-пользователем (проверка `php artisan tinker` → `User::count() === 1`).
-- [ ] **7.3** Раздел «Queue worker»: `php artisan queue:work --queue=parsing` — отдельная команда, обязательная для обработки `ParseYandexCompanyJob` (без неё статус останется `pending` вечно).
+- [x] **7.3** Раздел «Queue worker»: `php artisan queue:work --queue=parsing` — отдельная команда, обязательная для обработки `ParseYandexCompanyJob` (без неё статус останется `pending` вечно).
   DoD: инструкция явно предупреждает, что без запущенного воркера парсинг не продвинется дальше `pending`; проверено запуском воркера в отдельном терминале и наблюдением перехода статуса.
-- [ ] **7.4** Раздел «Frontend setup»: `npm install`, `npm run dev` (Vite dev-сервер), настройка `.env`/переменной с backend `baseURL` для Axios.
+- [x] **7.4** Раздел «Frontend setup»: `npm install`, `npm run dev` (Vite dev-сервер), настройка `.env`/переменной с backend `baseURL` для Axios.
   DoD: свежий клон, выполнение шагов приводит к рабочему фронтенду на `localhost:5173` (или актуальный порт Vite), успешно обращающемуся к backend на `localhost:8000`.
-- [ ] **7.5** Раздел «Запуск всего стека локально (без Docker)»: последовательность из 3 терминалов — `php artisan serve` (backend, порт 8000), `php artisan queue:work --queue=parsing` (воркер), `npm run dev` (frontend, порт 5173) — с указанием CORS/`SANCTUM_STATEFUL_DOMAINS` под связку портов.
+- [x] **7.5** Раздел «Запуск всего стека локально (без Docker)»: последовательность из 3 терминалов — `php artisan serve` (backend, порт 8000), `php artisan queue:work --queue=parsing` (воркер), `npm run dev` (frontend, порт 5173) — с указанием CORS/`SANCTUM_STATEFUL_DOMAINS` под связку портов.
   DoD: чистый прогон всех трёх команд по инструкции на новой машине/новом клоне → полный пользовательский путь (логин → добавление → парсинг → просмотр отзывов) работает без ручных дополнительных правок конфигурации.
-- [ ] **7.6** Раздел «Тестирование»: команды `php artisan test` (backend) и `npm run test`/`vitest` (frontend), краткое описание покрытия (Phase 1–6).
+- [x] **7.6** Раздел «Тестирование»: команды `php artisan test` (backend) и `npm run test`/`vitest` (frontend), краткое описание покрытия (Phase 1–6).
   DoD: обе команды выполняются успешно на чистом клоне после выполнения setup-шагов 7.2/7.4.
-- [ ] **7.7** Раздел «Известные ограничения» (перенос из plan.md §3.4 и §5): отсутствие полной истории изменений отзывов, общий (не пользовательский) скоуп организаций в MVP, ручной/не по расписанию запуск парсинга.
+- [x] **7.7** Раздел «Известные ограничения» (перенос из plan.md §3.4 и §5): отсутствие полной истории изменений отзывов, общий (не пользовательский) скоуп организаций в MVP, ручной/не по расписанию запуск парсинга.
   DoD: раздел присутствует в README, соответствует формулировкам допущений plan.md.
