@@ -6,34 +6,34 @@
 
 ## Phase 1: Setup & Migrations (`./backend`)
 
-- [ ] **1.1** Инициализировать Laravel-проект в `./backend` (composer, `.env.example` с настройками MySQL: `127.0.0.1:3306`, `DailyGrowTestLaravel`, `mysql`/`mysql`).
+- [x] **1.1** Инициализировать Laravel-проект в `./backend` (composer, `.env.example` с настройками MySQL: `127.0.0.1:3306`, `DailyGrowTestLaravel`, `mysql`/`mysql`).
   DoD: `php artisan serve` поднимается, `php artisan migrate` проходит без ошибок на базовых миграциях Laravel.
-- [ ] **1.2** Установить и настроить Laravel Sanctum (`composer require laravel/sanctum`, публикация конфига, `EnsureFrontendRequestsAreStateful` в `api` middleware group, `SANCTUM_STATEFUL_DOMAINS`/`SESSION_DOMAIN` в `.env`).
+- [x] **1.2** Установить и настроить Laravel Sanctum (`composer require laravel/sanctum`, публикация конфига, `EnsureFrontendRequestsAreStateful` в `api` middleware group, `SANCTUM_STATEFUL_DOMAINS`/`SESSION_DOMAIN` в `.env`).
   DoD: конфиг `config/sanctum.php` и `config/cors.php` (`supports_credentials => true`) присутствуют и соответствуют домену фронтенда (Vite dev-сервер).
-- [ ] **1.3** Миграция `create_companies_table` по схеме из plan.md §1.1 (`url`, `normalized_url`, `yandex_id` unique, `name`, `rating`, `reviews_count`, `ratings_count`, `parse_status` enum, `last_parsed_at`, `last_error`).
+- [x] **1.3** Миграция `create_companies_table` по схеме из plan.md §1.1 (`url`, `normalized_url`, `yandex_id` unique, `name`, `rating`, `reviews_count`, `ratings_count`, `parse_status` enum, `last_parsed_at`, `last_error`).
   DoD: `php artisan migrate` создаёт таблицу с указанными индексами (`unique(yandex_id)`, `index(normalized_url)`); проверено через `php artisan migrate:status` и просмотр схемы (`DESCRIBE companies`).
-- [ ] **1.4** Миграция `create_reviews_table` (`company_id` FK cascadeOnDelete, `external_id`, `author_name`, `rating`, `text`, `review_created_at`), с `unique(company_id, external_id)` и `index(company_id, review_created_at)`.
+- [x] **1.4** Миграция `create_reviews_table` (`company_id` FK cascadeOnDelete, `external_id`, `author_name`, `rating`, `text`, `review_created_at`), с `unique(company_id, external_id)` и `index(company_id, review_created_at)`.
   DoD: миграция применяется; попытка вставить дубль `(company_id, external_id)` через `DB::table('reviews')->insert(...)` в tinker бросает ошибку уникальности.
-- [ ] **1.5** Миграция `create_parsing_logs_table` (`company_id` FK, `status` enum, `reviews_collected`, `error_type` enum, `error_message`, `started_at`, `finished_at`) с `index(company_id, created_at)`.
+- [x] **1.5** Миграция `create_parsing_logs_table` (`company_id` FK, `status` enum, `reviews_collected`, `error_type` enum, `error_message`, `started_at`, `finished_at`) с `index(company_id, created_at)`.
   DoD: миграция применяется без ошибок, индекс виден в схеме.
-- [ ] **1.6** Создать модели `Company`, `Review`, `ParsingLog` с отношениями (`Company::reviews()`, `Company::parsingLogs()`, `Review::company()`, `ParsingLog::company()`), `$casts` для enum/decimal/datetime-полей.
+- [x] **1.6** Создать модели `Company`, `Review`, `ParsingLog` с отношениями (`Company::reviews()`, `Company::parsingLogs()`, `Review::company()`, `ParsingLog::company()`), `$casts` для enum/decimal/datetime-полей.
   DoD: `Company::factory()->create()->reviews` возвращает пустую коллекцию без ошибок; типы полей (`rating` как float, `parse_status` как enum/string) корректны при `dd()`.
-- [ ] **1.7** Фабрики (`CompanyFactory`, `ReviewFactory`, `ParsingLogFactory`) для тестовых данных.
+- [x] **1.7** Фабрики (`CompanyFactory`, `ReviewFactory`, `ParsingLogFactory`) для тестовых данных.
   DoD: `Company::factory()->has(Review::factory()->count(5))->create()` создаёт компанию и 5 связанных отзывов без нарушения constraints.
 
 ---
 
 ## Phase 2: Auth API & Seeder (`./backend`)
 
-- [ ] **2.1** `UserSeeder`: создаёт единственного сид-пользователя с фиксированным email/паролем (например через `.env`-переменные `SEED_USER_EMAIL`/`SEED_USER_PASSWORD` с дефолтами для локальной разработки).
+- [x] **2.1** `UserSeeder`: создаёт единственного сид-пользователя с фиксированным email/паролем (например через `.env`-переменные `SEED_USER_EMAIL`/`SEED_USER_PASSWORD` с дефолтами для локальной разработки).
   DoD: `php artisan db:seed --class=UserSeeder` создаёт ровно одну запись в `users`; повторный запуск не создаёт дубликат (использует `firstOrCreate`).
-- [ ] **2.2** Настроить `web`-роуты логина/логаута через стандартный флоу Sanctum SPA (`/login`, `/logout`) с CSRF-защитой (`VerifyCsrfToken` активен для этих роутов).
+- [x] **2.2** Настроить `web`-роуты логина/логаута через стандартный флоу Sanctum SPA (`/login`, `/logout`) с CSRF-защитой (`VerifyCsrfToken` активен для этих роутов).
   DoD: `POST /login` с валидными кредами сид-пользователя (после `GET /sanctum/csrf-cookie`) возвращает `204`/`200` и устанавливает сессионную cookie; повторный запрос к защищённому роуту с этой cookie проходит `auth:sanctum`.
-- [ ] **2.3** Роут `GET /api/user` (`auth:sanctum`), возвращает текущего пользователя.
+- [x] **2.3** Роут `GET /api/user` (`auth:sanctum`), возвращает текущего пользователя.
   DoD: без cookie → `401`; с валидной cookie → `200` с телом `{id, name, email}`.
-- [ ] **2.4** Тест невалидного логина (edge case §1 spec.md): неверный пароль/email.
+- [x] **2.4** Тест невалидного логина (edge case §1 spec.md): неверный пароль/email.
   DoD: Feature-тест `LoginTest` — неверные креды → `422`, сообщение не раскрывает, существует ли email; сессия не создаётся.
-- [ ] **2.5** Feature-тест на защиту всех будущих `/api/*` роутов: неавторизованный запрос к `GET /api/companies` (заглушка роута может временно возвращать `401` до Phase 4) → `401`.
+- [x] **2.5** Feature-тест на защиту всех будущих `/api/*` роутов: неавторизованный запрос к `GET /api/companies` (заглушка роута может временно возвращать `401` до Phase 4) → `401`.
   DoD: тест `AuthMiddlewareTest` зелёный.
 
 ---
