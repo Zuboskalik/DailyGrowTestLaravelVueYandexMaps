@@ -9,27 +9,27 @@ const props = defineProps({
 })
 
 const lastParsedAt = computed(() => {
-  if (!props.company.last_parsed_at) return 'Never'
-  return new Date(props.company.last_parsed_at).toLocaleString()
+  if (!props.company.last_parsed_at) return 'Никогда'
+  return new Date(props.company.last_parsed_at).toLocaleString('ru-RU')
 })
 </script>
 
 <template>
   <dl class="metrics">
     <div class="metric">
-      <dt>Rating</dt>
+      <dt>Рейтинг</dt>
       <dd>{{ company.rating ?? '—' }}</dd>
     </div>
     <div class="metric">
-      <dt>Ratings</dt>
+      <dt>Оценок</dt>
       <dd>{{ company.ratings_count ?? '—' }}</dd>
     </div>
     <div class="metric">
-      <dt>Reviews collected</dt>
+      <dt>Собрано отзывов</dt>
       <dd>{{ company.reviews_count ?? 0 }}</dd>
     </div>
     <div class="metric">
-      <dt>Last parsed</dt>
+      <dt>Последний сбор</dt>
       <dd>{{ lastParsedAt }}</dd>
     </div>
   </dl>

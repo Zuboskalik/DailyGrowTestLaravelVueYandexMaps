@@ -8,17 +8,17 @@ defineProps({
 
 function formatDate(value) {
   if (!value) return null
-  return new Date(value).toLocaleDateString()
+  return new Date(value).toLocaleDateString('ru-RU')
 }
 </script>
 
 <template>
-  <p v-if="reviews.length === 0" class="empty-state">No reviews have been collected yet.</p>
+  <p v-if="reviews.length === 0" class="empty-state">Отзывы пока не собраны.</p>
 
   <ul v-else class="reviews">
     <li v-for="review in reviews" :key="review.id" class="review">
       <div class="review-header">
-        <strong>{{ review.author_name || 'Anonymous' }}</strong>
+        <strong>{{ review.author_name || 'Аноним' }}</strong>
         <span v-if="review.rating" class="rating">{{ review.rating }} / 5</span>
         <span v-if="review.review_created_at" class="date">
           {{ formatDate(review.review_created_at) }}
@@ -26,7 +26,7 @@ function formatDate(value) {
       </div>
 
       <p v-if="review.has_text" class="text">{{ review.text }}</p>
-      <p v-else class="text-only-rating">Rating only, no comment left.</p>
+      <p v-else class="text-only-rating">Только оценка, без комментария.</p>
     </li>
   </ul>
 </template>

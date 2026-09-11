@@ -12,7 +12,7 @@ function onSuccess() {
 
 <template>
   <main class="login-view">
-    <h1>Sign in</h1>
+    <h1>Вход</h1>
     <LoginForm @success="onSuccess" />
   </main>
 </template>

@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { translateApiMessage } from '../i18n/apiMessages'
 
 const emit = defineEmits(['success'])
 
@@ -21,9 +22,10 @@ async function onSubmit() {
   } catch (e) {
     if (e.response?.status === 422) {
       const errors = e.response.data.errors
-      error.value = errors ? Object.values(errors).flat().join(' ') : e.response.data.message
+      const message = errors ? Object.values(errors).flat().join(' ') : e.response.data.message
+      error.value = translateApiMessage(message, 'Неверный email или пароль.')
     } else {
-      error.value = 'Something went wrong while signing in. Please try again.'
+      error.value = 'Не удалось войти. Пожалуйста, попробуйте ещё раз.'
     }
   } finally {
     submitting.value = false
@@ -39,7 +41,7 @@ async function onSubmit() {
     </label>
 
     <label class="field">
-      <span>Password</span>
+      <span>Пароль</span>
       <input
         v-model="password"
         type="password"
@@ -52,7 +54,7 @@ async function onSubmit() {
     <p v-if="error" class="error" role="alert">{{ error }}</p>
 
     <button type="submit" :disabled="submitting">
-      {{ submitting ? 'Signing in…' : 'Sign in' }}
+      {{ submitting ? 'Вход…' : 'Войти' }}
     </button>
   </form>
 </template>

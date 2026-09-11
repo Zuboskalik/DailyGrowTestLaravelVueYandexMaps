@@ -3,6 +3,7 @@ import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useCompanyStore } from '../stores/company'
+import { translateApiMessage } from '../i18n/apiMessages'
 import CompanyInput from '../components/CompanyInput.vue'
 import ParsingStatusBadge from '../components/ParsingStatusBadge.vue'
 import CompanyMetrics from '../components/CompanyMetrics.vue'
@@ -66,7 +67,7 @@ async function onStartParsing() {
   try {
     await companyStore.startParsing(props.id)
   } catch (e) {
-    parseError.value = e.response?.data?.message || 'Could not start parsing.'
+    parseError.value = translateApiMessage(e.response?.data?.message, 'Не удалось запустить сбор отзывов.')
   }
 }
 
@@ -83,20 +84,20 @@ async function onLogout() {
 <template>
   <div class="dashboard">
     <header class="dashboard-header">
-      <h1>Yandex Maps reviews</h1>
-      <button type="button" class="logout" @click="onLogout">Sign out</button>
+      <h1>Отзывы с Яндекс.Карт</h1>
+      <button type="button" class="logout" @click="onLogout">Выйти</button>
     </header>
 
     <section class="add-company">
-      <h2>Add an organization</h2>
+      <h2>Добавить организацию</h2>
       <CompanyInput @added="onCompanyAdded" />
     </section>
 
     <div class="dashboard-body">
       <aside class="company-list">
-        <h2>Organizations</h2>
+        <h2>Организации</h2>
         <p v-if="companyStore.companies.length === 0" class="empty-state">
-          No organizations added yet.
+          Организации ещё не добавлены.
         </p>
         <ul v-else>
           <li
@@ -131,14 +132,14 @@ async function onLogout() {
           >
             {{
               ['pending', 'processing'].includes(companyStore.currentCompany.parse_status)
-                ? 'Parsing…'
-                : 'Start parsing'
+                ? 'Идёт сбор…'
+                : 'Запустить сбор отзывов'
             }}
           </button>
           <p v-if="parseError" class="error" role="alert">{{ parseError }}</p>
         </div>
 
-        <h3>Reviews</h3>
+        <h3>Отзывы</h3>
         <ReviewsList :reviews="companyStore.reviews" />
         <Pagination
           :current-page="companyStore.pagination.currentPage"
@@ -147,7 +148,7 @@ async function onLogout() {
         />
       </section>
 
-      <p v-else class="empty-state select-hint">Select an organization to see its details.</p>
+      <p v-else class="empty-state select-hint">Выберите организацию, чтобы увидеть детали.</p>
     </div>
   </div>
 </template>

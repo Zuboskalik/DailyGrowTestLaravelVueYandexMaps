@@ -13,11 +13,11 @@ const props = defineProps({
 })
 
 const labels = {
-  idle: 'Not parsed yet',
-  pending: 'Queued',
-  processing: 'Parsing…',
-  completed: 'Completed',
-  failed: 'Failed',
+  idle: 'Ещё не собирались',
+  pending: 'В очереди',
+  processing: 'Собираем отзывы…',
+  completed: 'Готово',
+  failed: 'Ошибка',
 }
 
 const label = computed(() => labels[props.status] ?? props.status)

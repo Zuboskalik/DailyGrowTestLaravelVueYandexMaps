@@ -19,13 +19,13 @@ function goTo(page) {
 </script>
 
 <template>
-  <nav v-if="lastPage > 1" class="pagination" aria-label="Pagination">
+  <nav v-if="lastPage > 1" class="pagination" aria-label="Пагинация">
     <button type="button" :disabled="currentPage === 1" @click="goTo(currentPage - 1)">
-      Prev
+      Назад
     </button>
-    <span class="status">Page {{ currentPage }} of {{ lastPage }}</span>
+    <span class="status">Страница {{ currentPage }} из {{ lastPage }}</span>
     <button type="button" :disabled="currentPage === lastPage" @click="goTo(currentPage + 1)">
-      Next
+      Далее
     </button>
   </nav>
 </template>

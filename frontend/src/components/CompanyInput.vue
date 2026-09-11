@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useCompanyStore } from '../stores/company'
+import { translateApiMessage } from '../i18n/apiMessages'
 
 const emit = defineEmits(['added'])
 
@@ -34,7 +35,7 @@ async function onSubmit() {
   const value = url.value.trim()
 
   if (!isWellFormedUrl(value)) {
-    clientError.value = 'Please enter a valid http(s):// URL.'
+    clientError.value = 'Введите корректную ссылку, начинающуюся с http(s)://.'
     return
   }
 
@@ -47,9 +48,10 @@ async function onSubmit() {
   } catch (e) {
     if (e.response?.status === 422) {
       const errors = e.response.data.errors
-      serverError.value = errors ? Object.values(errors).flat().join(' ') : e.response.data.message
+      const message = errors ? Object.values(errors).flat().join(' ') : e.response.data.message
+      serverError.value = translateApiMessage(message, 'Не удалось проверить ссылку.')
     } else {
-      serverError.value = 'Could not add this company. Please try again.'
+      serverError.value = 'Не удалось добавить организацию. Попробуйте ещё раз.'
     }
   } finally {
     submitting.value = false
@@ -60,7 +62,7 @@ async function onSubmit() {
 <template>
   <form class="company-input" @submit.prevent="onSubmit">
     <label class="field">
-      <span>Yandex Maps organization link</span>
+      <span>Ссылка на организацию в Яндекс.Картах</span>
       <input
         v-model="url"
         type="text"
@@ -70,13 +72,13 @@ async function onSubmit() {
     </label>
 
     <p v-if="!looksLikeYandexOrgLink" class="hint">
-      This doesn't look like a Yandex Maps organization link — you can still submit it.
+      Это не похоже на ссылку на организацию в Яндекс.Картах — но вы можете отправить её.
     </p>
     <p v-if="clientError" class="error" role="alert">{{ clientError }}</p>
     <p v-if="serverError" class="error" role="alert">{{ serverError }}</p>
 
     <button type="submit" :disabled="submitting || !url">
-      {{ submitting ? 'Adding…' : 'Add company' }}
+      {{ submitting ? 'Добавление…' : 'Добавить организацию' }}
     </button>
   </form>
 </template>
