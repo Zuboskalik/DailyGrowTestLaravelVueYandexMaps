@@ -67,19 +67,19 @@
 
 ## Phase 4: Company & Review API endpoints (`./backend`)
 
-- [ ] **4.1** `StoreCompanyRequest` с regex-валидацией ссылки под форматы из spec.md §2 (`/maps/org/...`, `?oid=...`, короткие ссылки `/maps/-/...`).
+- [x] **4.1** `StoreCompanyRequest` с regex-валидацией ссылки под форматы из spec.md §2 (`/maps/org/...`, `?oid=...`, короткие ссылки `/maps/-/...`).
   DoD: unit-тест правил валидации — таблица валидных/невалидных URL из spec.md, включая отказ для не-Яндекс доменов и нерелевантных страниц карт (маршруты/метро).
-- [ ] **4.2** `CompanyController@store` — создание либо возврат существующей записи по `normalized_url`/`yandex_id` (дедуп US-2), без автозапуска парсинга.
+- [x] **4.2** `CompanyController@store` — создание либо возврат существующей записи по `normalized_url`/`yandex_id` (дедуп US-2), без автозапуска парсинга.
   DoD: Feature-тест: первый `POST /api/companies` создаёт запись (`201`); повторный запрос с той же (нормализованной) ссылкой возвращает существующую запись без дубля в БД (`200`, `count(companies) == 1`); невалидная ссылка → `422`.
-- [ ] **4.3** `CompanyController@index` и `CompanyController@show` — список организаций и детали одной (метрики + статус, plan.md §1.4).
+- [x] **4.3** `CompanyController@index` и `CompanyController@show` — список организаций и детали одной (метрики + статус, plan.md §1.4).
   DoD: Feature-тесты: `GET /api/companies` возвращает пагинированный/полный список текущих компаний авторизованного пользователя; `GET /api/companies/{id}` возвращает поля `rating`, `ratings_count`, `reviews_count`, `parse_status`, `last_parsed_at`; `404` для несуществующего id.
-- [ ] **4.4** `CompanyController@parse` — создание `parsing_logs` (`pending`) + `ParseYandexCompanyJob::dispatch`, с проверкой edge case §4.8 (уже есть активный `pending`/`processing`).
+- [x] **4.4** `CompanyController@parse` — создание `parsing_logs` (`pending`) + `ParseYandexCompanyJob::dispatch`, с проверкой edge case §4.8 (уже есть активный `pending`/`processing`).
   DoD: Feature-тест: первый `POST /api/companies/{id}/parse` → `202`, Job поставлен в очередь (`Queue::fake()->assertPushed`); повторный вызов пока статус `processing` → `409`, второй Job не добавляется.
-- [ ] **4.5** `ReviewController@index` — `GET /api/companies/{id}/reviews?page=X`, `paginate(50)`, сортировка по `review_created_at desc` (US-4).
+- [x] **4.5** `ReviewController@index` — `GET /api/companies/{id}/reviews?page=X`, `paginate(50)`, сортировка по `review_created_at desc` (US-4).
   DoD: Feature-тест: компания с 120 отзывами → `page=1` отдаёт 50 записей + метаданные пагинации (`current_page`, `last_page`, `total=120`); `page=3` отдаёт оставшиеся 20; пустой список (0 отзывов) → `200` с пустым `data`, не `404`/`500` (edge case §5 spec.md).
-- [ ] **4.6** Роутинг: зарегистрировать все эндпоинты из plan.md §1.4 в `routes/api.php`/`routes/web.php` под `auth:sanctum`.
+- [x] **4.6** Роутинг: зарегистрировать все эндпоинты из plan.md §1.4 в `routes/api.php`/`routes/web.php` под `auth:sanctum`.
   DoD: `php artisan route:list` показывает все роуты с корректным middleware; полный Feature-тест-сьют Phase 2–4 зелёный (`php artisan test`).
-- [ ] **4.7** Авторизационная проверка принадлежности (edge case §4.9 spec.md, если применимо к модели данных) — либо явно задокументировать в коде, что в MVP организации общие для всех авторизованных пользователей (в соответствии с допущением plan.md §5).
+- [x] **4.7** Авторизационная проверка принадлежности (edge case §4.9 spec.md, если применимо к модели данных) — либо явно задокументировать в коде, что в MVP организации общие для всех авторизованных пользователей (в соответствии с допущением plan.md §5).
   DoD: комментарий/README-заметка зафиксирована; либо (если вводится `user_id` на `companies`) — Policy + тест `403` на чужую организацию.
 
 ---

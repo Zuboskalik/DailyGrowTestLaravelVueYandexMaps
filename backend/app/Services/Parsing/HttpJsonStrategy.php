@@ -8,6 +8,7 @@ use App\Exceptions\Parsing\OrganizationNotFoundException;
 use App\Exceptions\Parsing\ParsingStructureChangedException;
 use App\Exceptions\Parsing\SourceBannedException;
 use App\Exceptions\Parsing\SourceTimeoutException;
+use App\Support\YandexOrganizationUrl;
 use Carbon\Carbon;
 use Generator;
 use Illuminate\Http\Client\ConnectionException;
@@ -201,17 +202,6 @@ class HttpJsonStrategy implements ReviewSourceStrategy
 
     private function extractYandexId(string $url): ?string
     {
-        if (preg_match('~/maps/org/[^/]+/(\d+)~', $url, $matches)) {
-            return $matches[1];
-        }
-
-        $query = [];
-        parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
-
-        if (! empty($query['oid']) && is_numeric($query['oid'])) {
-            return (string) $query['oid'];
-        }
-
-        return null;
+        return YandexOrganizationUrl::extractId($url);
     }
 }
