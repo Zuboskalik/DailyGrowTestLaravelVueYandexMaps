@@ -70,6 +70,7 @@ class CompanyController extends Controller
         }
 
         $log = ParseYandexCompanyJob::dispatchFor($company);
+        $company->update(['parse_status' => 'pending']);
 
         return response()->json([
             'message' => 'Parsing started.',

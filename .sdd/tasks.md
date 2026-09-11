@@ -86,39 +86,39 @@
 
 ## Phase 5: Frontend Auth & Router (`./frontend`)
 
-- [ ] **5.1** Инициализировать Vue 3 + Vite проект в `./frontend` (`npm create vite@latest`, Vue Router, Pinia установлены).
+- [x] **5.1** Инициализировать Vue 3 + Vite проект в `./frontend` (`npm create vite@latest`, Vue Router, Pinia установлены).
   DoD: `npm run dev` поднимает пустое приложение без ошибок в консоли.
-- [ ] **5.2** Настроить Axios-инстанс (`src/api/http.js`) с `baseURL` backend, `withCredentials: true`, интерцептором на `401` (редирект на `/login`) и инициализацией CSRF-cookie перед логином.
+- [x] **5.2** Настроить Axios-инстанс (`src/api/http.js`) с `baseURL` backend, `withCredentials: true`, интерцептором на `401` (редирект на `/login`) и инициализацией CSRF-cookie перед логином.
   DoD: ручная проверка через DevTools Network — запрос к `/sanctum/csrf-cookie` отправляется до `POST /login`, cookie `XSRF-TOKEN`/`laravel_session` видны в браузере после логина.
-- [ ] **5.3** `useAuthStore` (Pinia): состояние `user`/`isAuthenticated`, действия `login`, `logout`, `fetchUser`.
+- [x] **5.3** `useAuthStore` (Pinia): состояние `user`/`isAuthenticated`, действия `login`, `logout`, `fetchUser`.
   DoD: unit-тест стора (Vitest) с замоканным Axios — `login` при успехе устанавливает `user`, при `422` пробрасывает ошибку без установки `user`.
-- [ ] **5.4** `LoginForm.vue` — форма email/пароль, вызов `useAuthStore.login`, отображение ошибок.
+- [x] **5.4** `LoginForm.vue` — форма email/пароль, вызов `useAuthStore.login`, отображение ошибок.
   DoD: ручная проверка в браузере — вход с сид-пользователем из Phase 2.1 успешно логинит и редиректит на главную; неверный пароль показывает сообщение об ошибке.
-- [ ] **5.5** Настроить Vue Router: `/login` (гостевой), `/` и `/companies/:id` (защищённые через `beforeEach`-guard, проверяющий `useAuthStore.isAuthenticated`, с предварительным `fetchUser()` при старте приложения для восстановления сессии по cookie).
+- [x] **5.5** Настроить Vue Router: `/login` (гостевой), `/` и `/companies/:id` (защищённые через `beforeEach`-guard, проверяющий `useAuthStore.isAuthenticated`, с предварительным `fetchUser()` при старте приложения для восстановления сессии по cookie).
   DoD: прямой заход на `/` без сессии редиректит на `/login`; после логина заход на `/login` редиректит на `/`; обновление страницы (`F5`) на защищённом роуте с активной cookie-сессией не разлогинивает.
-- [ ] **5.6** Кнопка/действие логаута, вызывающее `useAuthStore.logout` и редирект на `/login`.
+- [x] **5.6** Кнопка/действие логаута, вызывающее `useAuthStore.logout` и редирект на `/login`.
   DoD: ручная проверка — после логаута повторный заход на `/` без релогина невозможен (редирект на `/login`), cookie сессии инвалидирована на backend.
 
 ---
 
 ## Phase 6: Frontend Settings & Parser View (`./frontend`)
 
-- [ ] **6.1** `useCompanyStore` (Pinia): состояние `companies[]`, `currentCompany`, `reviews[]`, `pagination`; действия `addCompany`, `fetchCompany`, `fetchCompanies`, `startParsing`, `fetchReviews`.
+- [x] **6.1** `useCompanyStore` (Pinia): состояние `companies[]`, `currentCompany`, `reviews[]`, `pagination`; действия `addCompany`, `fetchCompany`, `fetchCompanies`, `startParsing`, `fetchReviews`.
   DoD: unit-тесты (Vitest, замоканный Axios) на каждое действие — успешный и `422`/`409`-сценарии для `addCompany`/`startParsing`.
-- [ ] **6.2** `CompanyInput.vue` — поле ввода ссылки с клиентской regex-подсказкой (не заменяющей backend-валидацию) + вызов `addCompany`.
+- [x] **6.2** `CompanyInput.vue` — поле ввода ссылки с клиентской regex-подсказкой (не заменяющей backend-валидацию) + вызов `addCompany`.
   DoD: ручная проверка — ввод валидной ссылки на организацию создаёт запись в списке; ввод произвольного текста показывает клиентскую подсказку без похода на сервер; сохранённая на backend `422`-ошибка (например, ссылка на немапс-домен, обойдя клиентскую проверку через paste) отображается пользователю.
-- [ ] **6.3** `ParsingStatusBadge.vue` — визуализация `pending`/`processing`/`completed`/`failed` с сообщением ошибки для `failed`.
+- [x] **6.3** `ParsingStatusBadge.vue` — визуализация `pending`/`processing`/`completed`/`failed` с сообщением ошибки для `failed`.
   DoD: Storybook-less ручная проверка — компонент рендерит все 4 состояния с разными визуальными стилями (проверить смену цвета/иконки); при `failed` показан `errorMessage`.
-- [ ] **6.4** Реализовать polling статуса в `useCompanyStore` (периодический `fetchCompany`, останавливается при `completed`/`failed`, очищается при размонтировании страницы деталей).
+- [x] **6.4** Реализовать polling статуса в `useCompanyStore` (периодический `fetchCompany`, останавливается при `completed`/`failed`, очищается при размонтировании страницы деталей).
   DoD: ручная проверка — запуск парсинга (`startParsing`) показывает `pending` → `processing` → `completed` без ручного обновления страницы; после ухода со страницы деталей polling прекращается (проверка через DevTools Network — запросы не продолжаются в фоне).
-- [ ] **6.5** `CompanyMetrics.vue` — отображение `rating`, `ratings_count`, `reviews_count`, `last_parsed_at`.
+- [x] **6.5** `CompanyMetrics.vue` — отображение `rating`, `ratings_count`, `reviews_count`, `last_parsed_at`.
   DoD: ручная проверка на компании с реально собранными тестовыми данными (сид/фикстуры) — значения совпадают с тем, что отдаёт `GET /api/companies/{id}`.
-- [ ] **6.6** `ReviewsList.vue` — список отзывов с пустым состоянием «отзывы ещё не собраны» и отдельным отображением «оценка без комментария» (edge case §4.7 spec.md).
+- [x] **6.6** `ReviewsList.vue` — список отзывов с пустым состоянием «отзывы ещё не собраны» и отдельным отображением «оценка без комментария» (edge case §4.7 spec.md).
   DoD: ручная проверка на трёх сценариях — организация без запуска парсинга (пустое состояние), организация с отзывами разных типов (с текстом / без текста), визуальная проверка обоих случаев.
-- [ ] **6.7** `Pagination.vue` — универсальный пагинатор, интеграция с `fetchReviews(id, page)` и метаданными от backend (по 50 на страницу, US-4).
+- [x] **6.7** `Pagination.vue` — универсальный пагинатор, интеграция с `fetchReviews(id, page)` и метаданными от backend (по 50 на страницу, US-4).
   DoD: ручная проверка на организации с >50 отзывов (тестовые фикстуры) — переключение страниц подгружает следующие 50 без полной перезагрузки страницы, кнопка Next неактивна на последней странице.
-- [ ] **6.8** Страница `CompanyDetailPage.vue`, собирающая `CompanyMetrics` + `ParsingStatusBadge` + кнопку запуска парсинга + `ReviewsList` + `Pagination` (plan.md §2.2).
-  DoD: End-to-end ручной прогон полного пользовательского пути: логин → добавление ссылки → запуск парсинга → наблюдение статуса → просмотр отзывов с пагинацией — без ошибок в консоли браузера.
+- [x] **6.8** ~~Страница `CompanyDetailPage.vue`~~ — по явному указанию пользователя список организаций и деталь объединены в один компонент `DashboardView.vue` (используется и на `/`, и на `/companies/:id`, читая `id` из route params), собирающий `CompanyInput` + `CompanyMetrics` + `ParsingStatusBadge` + кнопку запуска парсинга + `ReviewsList` + `Pagination`.
+  DoD: End-to-end ручной прогон полного пользовательского пути в браузере (логин → добавление ссылки → авто-переход на деталь → запуск парсинга → наблюдение статуса `pending → processing → failed` через polling → просмотр 120 отзывов с пагинацией по 3 страницам → логаут) — без ошибок в консоли браузера; выполнен вживую против реального Yandex-домена (реального внутреннего эндпоинта нет, поэтому реальный прогон корректно завершился `structure_changed`, что и должно происходить).
 
 ---
 

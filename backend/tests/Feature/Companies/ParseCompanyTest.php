@@ -30,6 +30,20 @@ class ParseCompanyTest extends TestCase
         Queue::assertPushed(ParseYandexCompanyJob::class);
     }
 
+    public function test_starting_a_parse_run_immediately_marks_the_company_as_pending(): void
+    {
+        // Without this, a company polling its own status would show
+        // "idle" until a queue worker actually picks the job up.
+        Queue::fake();
+        $user = User::factory()->create();
+        $company = Company::factory()->create(['parse_status' => 'idle']);
+
+        $this->actingAs($user)->postJson("/api/companies/{$company->id}/parse")
+            ->assertStatus(202);
+
+        $this->assertSame('pending', $company->refresh()->parse_status);
+    }
+
     public function test_starting_a_parse_run_while_one_is_already_active_returns_conflict(): void
     {
         Queue::fake();
