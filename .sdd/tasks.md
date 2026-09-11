@@ -40,27 +40,27 @@
 
 ## Phase 3: Yandex Parser Service & Job (`./backend`)
 
-- [ ] **3.1** Определить DTO `OrganizationSnapshot` и `ReviewSnapshot` (простые readonly-объекты/массивы с полями из plan.md §1.3) в `app/DTO`.
+- [x] **3.1** Определить DTO `OrganizationSnapshot` и `ReviewSnapshot` (простые readonly-объекты/массивы с полями из plan.md §1.3) в `app/DTO`.
   DoD: классы существуют, покрыты unit-тестом на корректную инициализацию полей.
-- [ ] **3.2** Определить доменные исключения: `ParsingException` (базовое), `ParsingStructureChangedException`, `OrganizationNotFoundException`, `SourceBannedException`, `SourceTimeoutException` в `app/Exceptions/Parsing`.
+- [x] **3.2** Определить доменные исключения: `ParsingException` (базовое), `ParsingStructureChangedException`, `OrganizationNotFoundException`, `SourceBannedException`, `SourceTimeoutException` в `app/Exceptions/Parsing`.
   DoD: все наследуют `ParsingException`; unit-тест проверяет иерархию (`instanceof`).
-- [ ] **3.3** Реализовать интерфейс `ReviewSourceStrategy` (контракт `resolveOrganization`, `fetchReviews`) и заглушку `HttpJsonStrategy` (перехват внутреннего JSON/AJAX-эндпоинта Яндекс.Карт, как описано в plan.md §1.2).
+- [x] **3.3** Реализовать интерфейс `ReviewSourceStrategy` (контракт `resolveOrganization`, `fetchReviews`) и заглушку `HttpJsonStrategy` (перехват внутреннего JSON/AJAX-эндпоинта Яндекс.Карт, как описано в plan.md §1.2).
   DoD: интерфейс определён; `HttpJsonStrategy` инжектируется через DI-контейнер (`app/Providers/AppServiceProvider` binding), заменяем на мок в тестах.
-- [ ] **3.4** Реализовать `YandexMapParserService::resolveOrganization()` — извлечение `yandex_id`/`name`/`rating`/`ratings_count` из ответа стратегии, резолв редиректов для коротких ссылок (edge case §4.11 spec.md).
+- [x] **3.4** Реализовать `YandexMapParserService::resolveOrganization()` — извлечение `yandex_id`/`name`/`rating`/`ratings_count` из ответа стратегии, резолв редиректов для коротких ссылок (edge case §4.11 spec.md).
   DoD: unit-тест с мок-стратегией: короткая ссылка резолвится в каноническую, `yandex_id` извлекается корректно; несуществующая организация → `OrganizationNotFoundException`.
-- [ ] **3.5** Реализовать `YandexMapParserService::fetchReviews()` как генератор с лимитом `~600` (plan.md §3.1 spec.md), включая проверку правила «`ratings_count > 0` и `0` отзывов → `ParsingStructureChangedException`» (spec.md §3.3).
+- [x] **3.5** Реализовать `YandexMapParserService::fetchReviews()` как генератор с лимитом `~600` (plan.md §3.1 spec.md), включая проверку правила «`ratings_count > 0` и `0` отзывов → `ParsingStructureChangedException`» (spec.md §3.3).
   DoD: unit-тесты: (а) мок отдаёт 600+ отзывов → генератор останавливается ровно на лимите; (б) мок с `ratings_count=10`, `0` отзывов → выбрасывается `ParsingStructureChangedException`; (в) `ratings_count=0`, `0` отзывов → не выбрасывается, штатное завершение (edge case §5 spec.md).
-- [ ] **3.6** Реализовать User-Agent rotation и throttling (случайная задержка между постраничными запросами) внутри `HttpJsonStrategy` (plan.md §1.2, §3.1).
+- [x] **3.6** Реализовать User-Agent rotation и throttling (случайная задержка между постраничными запросами) внутри `HttpJsonStrategy` (plan.md §1.2, §3.1).
   DoD: unit/feature-тест с фейковым HTTP-клиентом (`Http::fake()`) подтверждает, что заголовок `User-Agent` берётся из пула и не идентичен на 100% запросов подряд (проверка ротации), задержка вызывается между страницами (через инъекцию sleeper-интерфейса, мокаемого в тесте — без реального `sleep()` в тестовом окружении).
-- [ ] **3.7** Классификация HTTP-ошибок источника: `403`/капча → `SourceBannedException`, сетевой таймаут → `SourceTimeoutException`.
+- [x] **3.7** Классификация HTTP-ошибок источника: `403`/капча → `SourceBannedException`, сетевой таймаут → `SourceTimeoutException`.
   DoD: unit-тесты на каждый случай с `Http::fake()`, эмулирующим соответствующий ответ/исключение.
-- [ ] **3.8** Реализовать `ParseYandexCompanyJob` (`ShouldQueue`, очередь `parsing`, `$tries = 3`, `backoff()` из plan.md §1.3): оркестрация `resolveOrganization` → `fetchReviews` → upsert в `reviews` по мере получения → обновление `companies`/`parsing_logs`.
+- [x] **3.8** Реализовать `ParseYandexCompanyJob` (`ShouldQueue`, очередь `parsing`, `$tries = 3`, `backoff()` из plan.md §1.3): оркестрация `resolveOrganization` → `fetchReviews` → upsert в `reviews` по мере получения → обновление `companies`/`parsing_logs`.
   DoD: Feature-тест с фейковой очередью (`Queue::fake()`) на диспетч; отдельный тест с реальным синхронным выполнением Job (`Bus::dispatchSync` или `Queue::assertPushed` + вызов `handle()` напрямую) через мок `YandexMapParserService`: успешный сценарий → `companies.parse_status = completed`, `reviews` содержит upsert'нутые записи, `parsing_logs.status = completed`.
-- [ ] **3.9** Обработка исключений в `ParseYandexCompanyJob`: каждый тип `ParsingException` маппится в `parsing_logs.error_type` (`banned`/`timeout`/`structure_changed`/`not_found`), `companies.parse_status = failed`, `companies.last_error` заполняется.
+- [x] **3.9** Обработка исключений в `ParseYandexCompanyJob`: каждый тип `ParsingException` маппится в `parsing_logs.error_type` (`banned`/`timeout`/`structure_changed`/`not_found`), `companies.parse_status = failed`, `companies.last_error` заполняется.
   DoD: параметризованный Feature-тест (data provider) на все 4 типа исключений → корректный `error_type` в БД.
-- [ ] **3.10** Настроить `ParsingStructureChangedException` как non-retryable (`$tries = 1` для этого случая либо явный `$this->fail($e)` без дальнейших попыток очереди, plan.md §3.2).
+- [x] **3.10** Настроить `ParsingStructureChangedException` как non-retryable (`$tries = 1` для этого случая либо явный `$this->fail($e)` без дальнейших попыток очереди, plan.md §3.2).
   DoD: тест подтверждает, что при этом исключении Job не переставляется в очередь повторно (нет второй попытки `attempts()`).
-- [ ] **3.11** Реализовать идемпотентный upsert отзывов (`updateOrCreate` по `(company_id, external_id)`) и защиту от параллельного запуска (`WithoutOverlapping` middleware Job по `company_id`, edge case §4.8 spec.md).
+- [x] **3.11** Реализовать идемпотентный upsert отзывов (`updateOrCreate` по `(company_id, external_id)`) и защиту от параллельного запуска (`WithoutOverlapping` middleware Job по `company_id`, edge case §4.8 spec.md).
   DoD: тест «повторный запуск с тем же набором `external_id`» → количество записей в `reviews` не увеличивается, только `updated_at` меняется у изменившихся; тест на попытку запустить второй Job для той же компании, пока первый не завершён — второй не выполняется параллельно (проверка через `Bus::fake()`/middleware assertion).
 
 ---
