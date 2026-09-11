@@ -1,616 +1,388 @@
-# Implementation Tasks Checklist
-
-## Phase 1: Infrastructure & Environment Setup
-
-- [ ] **Task 1.1: Root Docker Compose Configuration** (Root)
-  - **Acceptance Criteria:**
-    - docker-compose.yml создан в корне проекта
-    - Сервисы: app (Laravel), nginx, mysql, redis, queue-worker, frontend, playwright
-    - Все сервисы имеют правильные зависимости и network конфигурацию
-    - Volumes настроены для persistent данных (mysql)
-  - **Files:** `docker-compose.yml`
-
-- [ ] **Task 1.2: Backend Dockerfile & Configuration** (./backend)
-  - **Acceptance Criteria:**
-    - Dockerfile создан для PHP 8.2-FPM
-    - Установлены необходимые PHP extensions (pdo_mysql, mbstring, gd, bcmath)
-    - Composer установлен
-    - Правильные permissions для /var/www/storage
-  - **Files:** `backend/Dockerfile`
-
-- [ ] **Task 1.3: Frontend Dockerfile & Nginx Config** (./frontend)
-  - **Acceptance Criteria:**
-    - Multi-stage Dockerfile (build + production)
-    - Nginx configuration для SPA (fallback to index.html)
-    - Proxy настроен для /api requests к backend
-  - **Files:** `frontend/Dockerfile`, `frontend/nginx.conf`
-
-- [ ] **Task 1.4: Backend Nginx Configuration** (Root)
-  - **Acceptance Criteria:**
-    - Nginx config для PHP-FPM
-    - Правильные fastcgi params
-    - CORS headers для Sanctum
-  - **Files:** `docker/nginx/default.conf`
-
-- [ ] **Task 1.5: Environment Configuration Files** (./backend)
-  - **Acceptance Criteria:**
-    - .env.example создан с всеми необходимыми переменными
-    - .env создан для local development
-    - Настроены DB, Redis, Sanctum параметры
-  - **Files:** `backend/.env.example`, `backend/.env`
-
-- [ ] **Task 1.6: Frontend Environment Configuration** (./frontend)
-  - **Acceptance Criteria:**
-    - .env.example создан
-    - .env создан с VITE_API_URL
-  - **Files:** `frontend/.env.example`, `frontend/.env`
-
-## Phase 2: Backend - Core Setup
-
-- [ ] **Task 2.1: Laravel Project Initialization** (./backend)
-  - **Acceptance Criteria:**
-    - Laravel 11 проект инициализирован
-    - Composer dependencies установлены
-    - composer.json настроен
-  - **Files:** `backend/composer.json`, `backend/composer.lock`
-
-- [ ] **Task 2.2: Database Migrations - Users Table** (./backend)
-  - **Acceptance Criteria:**
-    - Migration создана для users таблицы
-    - Поля: id, name, email, password, email_verified_at, remember_token, timestamps
-    - Email уникальный индекс
-  - **Files:** `backend/database/migrations/xxxx_xx_xx_create_users_table.php`
-
-- [ ] **Task 2.3: Database Migrations - Companies Table** (./backend)
-  - **Acceptance Criteria:**
-    - Migration создана для companies таблицы
-    - Поля: id, yandex_url, yandex_org_id, name, rating, reviews_count, ratings_count, parse_status, last_parsed_at, timestamps
-    - Индексы: yandex_org_id, parse_status
-    - Enum для parse_status: idle, pending, processing, completed, failed
-  - **Files:** `backend/database/migrations/xxxx_xx_xx_create_companies_table.php`
-
-- [ ] **Task 2.4: Database Migrations - Reviews Table** (./backend)
-  - **Acceptance Criteria:**
-    - Migration создана для reviews таблицы
-    - Поля: id, company_id (foreign key), external_id (unique), author_name, author_avatar, rating, text, review_created_at, raw_payload_hash, timestamps
-    - Индексы: [company_id, external_id], review_created_at, rating
-    - Foreign key с cascade delete
-  - **Files:** `backend/database/migrations/xxxx_xx_xx_create_reviews_table.php`
-
-- [ ] **Task 2.5: Database Migrations - Parse Logs Table** (./backend)
-  - **Acceptance Criteria:**
-    - Migration создана для parse_logs таблицы
-    - Поля: id, company_id (foreign key), parse_job_id (foreign key to jobs), status, error_message, payload_snapshot (json), reviews_collected, timestamps
-    - Индексы: company_id, status
-  - **Files:** `backend/database/migrations/xxxx_xx_xx_create_parse_logs_table.php`
-
-- [ ] **Task 2.6: Database Migrations - Jobs Table** (./backend)
-  - **Acceptance Criteria:**
-    - Laravel queue jobs table создана
-    - php artisan queue:table выполнен
-  - **Files:** `backend/database/migrations/xxxx_xx_xx_create_jobs_table.php`
-
-- [ ] **Task 2.7: User Model with Relationships** (./backend)
-  - **Acceptance Criteria:**
-    - User model создан
-    - Relationship: hasMany(Company::class)
-    - Implements Authenticatable contract
-  - **Files:** `backend/app/Models/User.php`
-
-- [ ] **Task 2.8: Company Model with Relationships** (./backend)
-  - **Acceptance Criteria:**
-    - Company model создан
-    - Relationship: belongsTo(User::class), hasMany(Review::class), hasMany(ParseLog::class)
-    - Casts для rating (decimal), parse_status (enum)
-    - Fillable поля определены
-  - **Files:** `backend/app/Models/Company.php`
-
-- [ ] **Task 2.9: Review Model with Relationships** (./backend)
-  - **Acceptance Criteria:**
-    - Review model создан
-    - Relationship: belongsTo(Company::class)
-    - Casts для review_created_at (datetime), rating (integer)
-    - Fillable поля определены
-  - **Files:** `backend/app/Models/Review.php`
-
-- [ ] **Task 2.10: ParseLog Model with Relationships** (./backend)
-  - **Acceptance Criteria:**
-    - ParseLog model создан
-    - Relationship: belongsTo(Company::class), belongsTo(Job::class)
-    - Casts для payload_snapshot (json), status (enum)
-    - Fillable поля определены
-  - **Files:** `backend/app/Models/ParseLog.php`
-
-- [ ] **Task 2.11: Database Seeder - Admin User** (./backend)
-  - **Acceptance Criteria:**
-    - Seeder создан для admin пользователя
-    - Email: admin@example.com, Password: password
-    - User создан при выполнении php artisan db:seed
-  - **Files:** `backend/database/seeders/AdminUserSeeder.php`
-
-## Phase 3: Backend - Authentication
-
-- [ ] **Task 3.1: Sanctum Installation & Configuration** (./backend)
-  - **Acceptance Criteria:**
-    - Laravel Sanctum установлен
-    - config/sanctum.php настроен
-    - config/cors.php настроен для frontend origin
-    - SANCTUM_STATEFUL_DOMAINS настроен в .env
-  - **Files:** `backend/config/sanctum.php`, `backend/config/cors.php`
-
-- [ ] **Task 3.2: Auth Controller - Login** (./backend)
-  - **Acceptance Criteria:**
-    - AuthController создан
-    - login() метод реализован
-    - Использует Auth::attempt()
-    - Регенерирует session
-    - Возвращает user data или 401
-  - **Files:** `backend/app/Http/Controllers/AuthController.php`
-
-- [ ] **Task 3.3: Auth Controller - Logout & User** (./backend)
-  - **Acceptance Criteria:**
-    - logout() метод реализован
-    - user() метод реализован
-    - Session invalidation при logout
-  - **Files:** `backend/app/Http/Controllers/AuthController.php`
-
-- [ ] **Task 3.4: API Routes - Auth Endpoints** (./backend)
-  - **Acceptance Criteria:**
-    - POST /api/login маршрут создан
-    - POST /api/logout маршрут создан
-    - GET /api/user маршрут создан
-    - Маршруты в api.php
-  - **Files:** `backend/routes/api.php`
-
-- [ ] **Task 3.5: Sanctum Middleware Configuration** (./backend)
-  - **Acceptance Criteria:**
-    - sanctum middleware добавлен в api middleware group
-    - EnsureFrontendRequestsAreStateful настроен
-  - **Files:** `backend/bootstrap/app.php`, `backend/config/sanctum.php`
-
-## Phase 4: Backend - Parser Services
-
-- [ ] **Task 4.1: Parser Interface Contract** (./backend)
-  - **Acceptance Criteria:**
-    - ParserInterface создан
-    - Методы: parse(string $url): ParseResultDTO, extractOrgId(string $url): string
-  - **Files:** `backend/app/Services/YandexParser/Contracts/ParserInterface.php`
-
-- [ ] **Task 4.2: DTOs - CompanyDataDTO** (./backend)
-  - **Acceptance Criteria:**
-    - CompanyDataDTO создан
-    - Поля: yandexOrgId, name, rating, reviewsCount, ratingsCount
-    - Readonly свойства
-  - **Files:** `backend/app/DTOs/CompanyDataDTO.php`
-
-- [ ] **Task 4.3: DTOs - ReviewDTO** (./backend)
-  - **Acceptance Criteria:**
-    - ReviewDTO создан
-    - Поля: externalId, authorName, authorAvatar, rating, text, reviewCreatedAt
-    - Readonly свойства
-  - **Files:** `backend/app/DTOs/ReviewDTO.php`
-
-- [ ] **Task 4.4: DTOs - ParseResultDTO** (./backend)
-  - **Acceptance Criteria:**
-    - ParseResultDTO создан
-    - Поля: companyData (CompanyDataDTO), reviews (array of ReviewDTO), rawPayloadHash
-    - Readonly свойства
-  - **Files:** `backend/app/DTOs/ParseResultDTO.php`
-
-- [ ] **Task 4.5: Yandex AJAX Parser Service** (./backend)
-  - **Acceptance Criteria:**
-    - YandexAjaxParser создан
-    - Реализует ParserInterface
-    - Использует Guzzle для HTTP запросов
-    - Извлекает org_id из URL
-    - Парсит AJAX endpoints Яндекса
-    - Возвращает ParseResultDTO
-    - Обрабатывает ошибки сети и валидации
-  - **Files:** `backend/app/Services/YandexParser/YandexAjaxParser.php`
-
-- [ ] **Task 4.6: Yandex Playwright Parser Service** (./backend)
-  - **Acceptance Criteria:**
-    - YandexPlaywrightParser создан
-    - Реализует ParserInterface
-    - Использует HTTP запросы к playwright service
-    - Извлекает данные из DOM через playwright
-    - Возвращает ParseResultDTO
-    - Фоллбэк при недоступности AJAX
-  - **Files:** `backend/app/Services/YandexParser/YandexPlaywrightParser.php`
-
-- [ ] **Task 4.7: Main Parser Service** (./backend)
-  - **Acceptance Criteria:**
-    - YandexMapParserService создан
-    - Инжектит YandexAjaxParser и YandexPlaywrightParser
-    - Сначала пробует AJAX, при ошибке фоллбэк на Playwright
-    - Логирует метод парсинга
-  - **Files:** `backend/app/Services/YandexParser/YandexMapParserService.php`
-
-- [ ] **Task 4.8: Playwright Node.js Service** (./backend)
-  - **Acceptance Criteria:**
-    - Express server создан
-    - POST /parse endpoint
-    - Использует Playwright chromium
-    - Извлекает отзывы и данные компании из DOM
-    - Возвращает JSON
-  - **Files:** `backend/services/playwright/server.js`, `backend/services/playwright/package.json`
-
-## Phase 5: Backend - Queue Jobs
-
-- [ ] **Task 5.1: ParseYandexCompanyJob** (./backend)
-  - **Acceptance Criteria:**
-    - Job создан implements ShouldQueue
-    - Принимает companyId
-    - Обновляет статус компании на processing
-    - Вызывает YandexMapParserService
-    - Сохраняет данные компании
-    - Сохраняет отзывы с дедупликацией (updateOrCreate по external_id)
-    - Обновляет статус на completed или failed
-    - Создает ParseLog запись
-    - Тries: 3, Timeout: 300
-  - **Files:** `backend/app/Jobs/ParseYandexCompanyJob.php`
-
-- [ ] **Task 5.2: Queue Configuration** (./backend)
-  - **Acceptance Criteria:**
-    - config/queue.php настроен на database или redis
-    - .env переменные QUEUE_CONNECTION настроены
-  - **Files:** `backend/config/queue.php`, `backend/.env`
-
-- [ ] **Task 5.3: Queue Worker Docker Service** (Root)
-  - **Acceptance Criteria:**
-    - queue-worker сервис в docker-compose.yml
-    - Команда: php artisan queue:work --sleep=3 --tries=3
-    - Зависимости: mysql, redis
-  - **Files:** `docker-compose.yml`
-
-## Phase 6: Backend - API Controllers
-
-- [ ] **Task 6.1: CompanyController - Index & Store** (./backend)
-  - **Acceptance Criteria:**
-    - index() - возвращает компании пользователя с пагинацией
-    - store() - создает компанию, валидирует URL, запускает ParseJob
-    - Валидация StoreCompanyRequest
-  - **Files:** `backend/app/Http/Controllers/CompanyController.php`
-
-- [ ] **Task 6.2: CompanyController - Show, Destroy, Parse** (./backend)
-  - **Acceptance Criteria:**
-    - show() - возвращает компанию с отзывами
-    - destroy() - удаляет компанию
-    - parse() - запускает ParseJob для компании
-    - Policy для авторизации
-  - **Files:** `backend/app/Http/Controllers/CompanyController.php`
-
-- [ ] **Task 6.3: ReviewController - Index with Filters** (./backend)
-  - **Acceptance Criteria:**
-    - index() - возвращает отзывы компании с пагинацией
-    - Фильтры: rating, date_from, date_to, search
-    - Сортировка по review_created_at DESC
-    - per_page по умолчанию 50
-  - **Files:** `backend/app/Http/Controllers/ReviewController.php`
-
-- [ ] **Task 6.4: Form Request Validation** (./backend)
-  - **Acceptance Criteria:**
-    - LoginRequest создан
-    - StoreCompanyRequest создан с URL валидацией
-    - Правила валидации для Yandex URL
-  - **Files:** `backend/app/Http/Requests/LoginRequest.php`, `backend/app/Http/Requests/StoreCompanyRequest.php`
-
-- [ ] **Task 6.5: API Routes - Company & Review Endpoints** (./backend)
-  - **Acceptance Criteria:**
-    - GET/POST /api/companies маршруты
-    - GET/DELETE /api/companies/{id} маршруты
-    - POST /api/companies/{id}/parse маршрут
-    - GET /api/companies/{id}/reviews маршрут
-    - Все маршруты защищены sanctum middleware
-  - **Files:** `backend/routes/api.php`
-
-- [ ] **Task 6.6: Company Policy** (./backend)
-  - **Acceptance Criteria:**
-    - CompanyPolicy создан
-    - view, update, delete методы
-    - Проверка принадлежности компании пользователю
-  - **Files:** `backend/app/Policies/CompanyPolicy.php`
-
-## Phase 7: Frontend - Core Setup
-
-- [ ] **Task 7.1: Vue 3 Project Initialization** (./frontend)
-  - **Acceptance Criteria:**
-    - Vue 3 проект создан с Vite
-    - package.json настроен
-    - vite.config.js настроен
-  - **Files:** `frontend/package.json`, `frontend/vite.config.js`
-
-- [ ] **Task 7.2: Frontend Dependencies Installation** (./frontend)
-  - **Acceptance Criteria:**
-    - Vue Router 4 установлен
-    - Pinia установлена
-    - Axios установлен
-    - Tailwind CSS установлен
-    - Все зависимости в package.json
-  - **Files:** `frontend/package.json`
-
-- [ ] **Task 7.3: Tailwind CSS Configuration** (./frontend)
-  - **Acceptance Criteria:**
-    - tailwind.config.js создан
-    - content paths настроены
-    - base.css с tailwind directives
-  - **Files:** `frontend/tailwind.config.js`, `frontend/src/assets/base.css`
-
-- [ ] **Task 7.4: Axios Configuration** (./frontend)
-  - **Acceptance Criteria:**
-    - Axios instance создан
-    - baseURL настроен из VITE_API_URL
-    - withCredentials: true для Sanctum
-    - Interceptor для ошибок
-  - **Files:** `frontend/src/utils/axios.js`
-
-- [ ] **Task 7.5: Vue Router Configuration** (./frontend)
-  - **Acceptance Criteria:**
-    - router/index.js создан
-    - Маршруты: /login, /dashboard, /
-    - Navigation guard для auth
-    - Meta fields: requiresAuth, requiresGuest
-  - **Files:** `frontend/src/router/index.js`
-
-- [ ] **Task 7.6: Main App Component** (./frontend)
-  - **Acceptance Criteria:**
-    - App.vue создан
-    - RouterView настроен
-    - Стили подключены
-  - **Files:** `frontend/src/App.vue`
-
-- [ ] **Task 7.7: Main Entry Point** (./frontend)
-  - **Acceptance Criteria:**
-    - main.js создан
-    - App монтирован
-    - Router и Pinia плагины подключены
-    - Стили импортированы
-  - **Files:** `frontend/src/main.js`
-
-## Phase 8: Frontend - State Management
-
-- [ ] **Task 8.1: Auth Store** (./frontend)
-  - **Acceptance Criteria:**
-    - useAuthStore создан
-    - State: user, token
-    - Actions: login, logout, fetchUser
-    - Persist state в localStorage
-  - **Files:** `frontend/src/stores/auth.js`
-
-- [ ] **Task 8.2: Company Store** (./frontend)
-  - **Acceptance Criteria:**
-    - useCompanyStore создан
-    - State: companies, currentCompany, reviews, pagination, filters
-    - Actions: fetchCompanies, createCompany, deleteCompany, startParse, fetchReviews
-    - Actions для фильтрации
-  - **Files:** `frontend/src/stores/company.js`
-
-## Phase 9: Frontend - Authentication UI
-
-- [ ] **Task 9.1: Login View** (./frontend)
-  - **Acceptance Criteria:**
-    - LoginView.vue создан
-    - Форма с email и password
-    - Вызов authStore.login
-    - Redirect на /dashboard при успехе
-    - Отображение ошибок
-  - **Files:** `frontend/src/views/LoginView.vue`
-
-## Phase 10: Frontend - Dashboard UI
-
-- [ ] **Task 10.1: Dashboard View Layout** (./frontend)
-  - **Acceptance Criteria:**
-    - DashboardView.vue создан
-    - Header с логотипом и logout кнопкой
-    - Основной layout с sidebar и content area
-  - **Files:** `frontend/src/views/DashboardView.vue`
-
-- [ ] **Task 10.2: UrlForm Component** (./frontend)
-  - **Acceptance Criteria:**
-    - UrlForm.vue создан
-    - Форма с полем Yandex URL
-    - Валидация URL формата
-    - Вызов companyStore.createCompany
-    - Отображение ошибок
-  - **Files:** `frontend/src/components/UrlForm.vue`
-
-- [ ] **Task 10.3: CompanyStats Component** (./frontend)
-  - **Acceptance Criteria:**
-    - CompanyStats.vue создан
-    - Отображение названия компании
-    - Отображение рейтинга и количества отзывов
-    - Индикатор статуса парсинга с цветами
-    - Кнопка "Parse"
-  - **Files:** `frontend/src/components/CompanyStats.vue`
-
-- [ ] **Task 10.4: Company List in Dashboard** (./frontend)
-  - **Acceptance Criteria:**
-    - Список компаний в DashboardView
-    - Использует CompanyStats компонент
-    - Выбор компании для просмотра отзывов
-    - Загрузка компаний при mount
-  - **Files:** `frontend/src/views/DashboardView.vue`
-
-## Phase 11: Frontend - Reviews UI
-
-- [ ] **Task 11.1: ReviewList Component** (./frontend)
-  - **Acceptance Criteria:**
-    - ReviewList.vue создан
-    - Отображение списка отзывов
-    - Карточка отзыва: автор, рейтинг, текст, дата
-    - Фильтры: rating, search, date range
-    - Интеграция с companyStore
-  - **Files:** `frontend/src/components/ReviewList.vue`
-
-- [ ] **Task 11.2: Pagination Component** (./frontend)
-  - **Acceptance Criteria:**
-    - Pagination.vue создан
-    - Отображение текущей страницы и общего количества
-    - Кнопки Previous/Next
-    - Отключение кнопок при boundaries
-    - Событие pageChange
-  - **Files:** `frontend/src/components/Pagination.vue`
-
-- [ ] **Task 11.3: ProgressBar Component** (./frontend)
-  - **Acceptance Criteria:**
-    - ProgressBar.vue создан
-    - Отображение прогресса парсинга
-    - Разные цвета для статусов
-    - Анимация для processing
-  - **Files:** `frontend/src/components/ProgressBar.vue`
-
-- [ ] **Task 11.4: Reviews Integration in Dashboard** (./frontend)
-  - **Acceptance Criteria:**
-    - ReviewList интегрирован в DashboardView
-    - Pagination интегрирован
-    - Отображение при выборе компании
-    - Polling для обновления статуса парсинга
-  - **Files:** `frontend/src/views/DashboardView.vue`
-
-## Phase 12: Integration & Testing
-
-- [ ] **Task 12.1: Backend Integration Tests** (./backend)
-  - **Acceptance Criteria:**
-    - Tests для AuthController
-    - Tests для CompanyController
-    - Tests для ReviewController
-    - Tests для ParseYandexCompanyJob
-    - Tests для Parser Services с mocks
-  - **Files:** `backend/tests/Feature/AuthTest.php`, `backend/tests/Feature/CompanyTest.php`, `backend/tests/Unit/ParserTest.php`
-
-- [ ] **Task 12.2: Frontend Component Tests** (./frontend)
-  - **Acceptance Criteria:**
-    - Tests для LoginView
-    - Tests для UrlForm
-    - Tests для CompanyStats
-    - Tests для ReviewList
-    - Tests для Pagination
-  - **Files:** `frontend/src/components/__tests__/LoginView.spec.js`, `frontend/src/components/__tests__/UrlForm.spec.js`
-
-- [ ] **Task 12.3: Frontend Store Tests** (./frontend)
-  - **Acceptance Criteria:**
-    - Tests для authStore
-    - Tests для companyStore
-  - **Files:** `frontend/src/stores/__tests__/auth.spec.js`, `frontend/src/stores/__tests__/company.spec.js`
-
-- [ ] **Task 12.4: End-to-End Testing** (./frontend)
-  - **Acceptance Criteria:**
-    - E2E тест для полного цикла: login -> add company -> parse -> view reviews
-    - Использование Playwright или Cypress
-  - **Files:** `frontend/e2e/fullFlow.spec.js`
-
-## Phase 13: Documentation & Deployment
-
-- [ ] **Task 13.1: README.md** (Root)
-  - **Acceptance Criteria:**
-    - README.md создан в корне
-    - Описание проекта
-    - Инструкция по установке и запуску
-    - Инструкция по использованию
-    - Docker команды
-    - Технологический стек
-  - **Files:** `README.md`
-
-- [ ] **Task 13.2: Backend README** (./backend)
-  - **Acceptance Criteria:**
-    - README.md в backend директории
-    - API документация
-    - Структура проекта
-    - Команды artisan
-  - **Files:** `backend/README.md`
-
-- [ ] **Task 13.3: Frontend README** (./frontend)
-  - **Acceptance Criteria:**
-    - README.md в frontend директории
-    - Структура компонентов
-    - Available stores
-    - Команды npm
-  - **Files:** `frontend/README.md`
-
-- [ ] **Task 13.4: .gitignore Configuration** (Root)
-  - **Acceptance Criteria:**
-    - .gitignore создан
-    - Игнорирует node_modules, vendor, .env, storage/logs
-    - Игнорирует IDE файлы
-  - **Files:** `.gitignore`
-
-- [ ] **Task 13.5: Production Environment Config** (./backend)
-  - **Acceptance Criteria:**
-    - .env.production.example создан
-    - Production настройки для APP_ENV, APP_DEBUG
-    - Production DB настройки
-  - **Files:** `backend/.env.production.example`
-
-- [ ] **Task 13.6: CI/CD Configuration** (Root)
-  - **Acceptance Criteria:**
-    - .github/workflows/ci.yml создан
-    - Tests запускаются на push
-    - Docker build тест
-  - **Files:** `.github/workflows/ci.yml`
-
-## Phase 14: Final Polish
-
-- [ ] **Task 14.1: Error Handling & Logging** (./backend)
-  - **Acceptance Criteria:**
-    - Глобальный exception handler
-    - Логирование ошибок парсера
-    - Логирование API ошибок
-  - **Files:** `backend/app/Exceptions/Handler.php`
-
-- [ ] **Task 14.2: Frontend Error Handling** (./frontend)
-  - **Acceptance Criteria:**
-    - Глобальный error handler для axios
-    - Error boundary component
-    - User-friendly error messages
-  - **Files:** `frontend/src/utils/axios.js`, `frontend/src/components/ErrorBoundary.vue`
-
-- [ ] **Task 14.3: Loading States** (./frontend)
-  - **Acceptance Criteria:**
-    - Loading spinners для async операций
-    - Skeleton loaders для списков
-    - Disabled states для кнопок при загрузке
-  - **Files:** `frontend/src/components/LoadingSpinner.vue`, `frontend/src/components/SkeletonLoader.vue`
-
-- [ ] **Task 14.4: Responsive Design** (./frontend)
-  - **Acceptance Criteria:**
-    - Адаптивный layout для mobile
-    - Tailwind responsive классы
-    - Тестирование на разных размерах экрана
-  - **Files:** `frontend/src/views/DashboardView.vue`, `frontend/src/components/ReviewList.vue`
-
-- [ ] **Task 14.5: Security Hardening** (./backend)
-  - **Acceptance Criteria:**
-    - CSRF protection настроен
-    - XSS protection
-    - SQL injection prevention (ORM)
-    - Rate limiting для API
-  - **Files:** `backend/config/cors.php`, `backend/app/Http/Middleware/ThrottleRequests.php`
-
-- [ ] **Task 14.6: Performance Optimization** (./backend)
-  - **Acceptance Criteria:**
-    - Database query optimization (eager loading)
-    - Indexes для частых запросов
-    - Кеширование настроек
-  - **Files:** `backend/app/Http/Controllers/CompanyController.php`, `backend/app/Http/Controllers/ReviewController.php`
-
-- [ ] **Task 14.7: Final Integration Testing** (Root)
-  - **Acceptance Criteria:**
-    - Полный тестовый сценарий в Docker
-    - Проверка всех user flows
-    - Проверка error scenarios
-  - **Files:** `tests/integration/fullFlow.test.sh`
-
-## Total Tasks: 63
-
-### Task Distribution:
-- **Root**: 8 tasks
-- **Backend**: 35 tasks
-- **Frontend**: 20 tasks
-
-### Estimated Timeline:
-- **Phase 1-2 (Infrastructure & Core)**: 2-3 days
-- **Phase 3-6 (Backend Features)**: 4-5 days
-- **Phase 7-11 (Frontend Features)**: 3-4 days
-- **Phase 12-14 (Testing & Polish)**: 2-3 days
-
-**Total Estimated Time**: 11-15 days
+# Implementation Task Checklist
+
+Atomic and testable tasks divided by directory and phase.
+
+---
+
+## Phase 1: Setup & Migrations (./backend)
+
+### 1.1 Laravel Project Initialization
+- [ ] Initialize Laravel project in `./backend` directory
+- [ ] Install Laravel Sanctum package via Composer
+- [ ] Configure Sanctum in `config/sanctum.php`
+- [ ] Add Sanctum middleware to `config/cors.php`
+- [ ] Set up database connection in `.env` (MySQL: 127.0.0.1:3306, database: DailyGrowTestLaravel, user: mysql, password: mysql)
+
+### 1.2 Database Migrations
+- [ ] Create migration file for `users` table with standard Laravel auth fields
+- [ ] Create migration file for `companies` table with fields: url, yandex_id (unique), name (nullable), rating (decimal 2,1), reviews_count, ratings_count, parse_status (enum), last_parsed_at
+- [ ] Create migration file for `reviews` table with fields: company_id (foreign key), external_id, author_name (nullable), rating, text (nullable), review_created_at
+- [ ] Create migration file for `parsing_logs` table with fields: company_id (foreign key), status (enum), error_message (nullable), reviews_collected, started_at, completed_at
+- [ ] Run all migrations: `php artisan migrate`
+- [ ] Verify all tables are created in MySQL database
+
+### 1.3 Queue System Setup
+- [ ] Create migration for `jobs` table: `php artisan queue:table`
+- [ ] Create migration for `failed_jobs` table: `php artisan queue:failed-table`
+- [ ] Run queue migrations
+- [ ] Configure queue driver in `.env` to use `database`
+- [ ] Create queue configuration in `config/queue.php` with custom queue name `yandex-parsing`
+- [ ] Test queue worker with test job
+
+### 1.4 Laravel Models
+- [ ] Create `User` model extending `Authenticatable`
+- [ ] Create `Company` model with relationships to `reviews` and `parsingLogs`
+- [ ] Create `Review` model with relationship to `company`
+- [ ] Create `ParsingLog` model with relationship to `company`
+- [ ] Add fillable fields to all models
+- [ ] Add casts for enum fields and timestamps
+
+---
+
+## Phase 2: Auth API & Seeder (./backend)
+
+### 2.1 Authentication Controllers
+- [ ] Create `app/Http/Controllers/Api/AuthController.php`
+- [ ] Implement `login` method with email/password validation
+- [ ] Implement `logout` method to revoke Sanctum tokens
+- [ ] Implement `user` method to return current authenticated user
+- [ ] Add form request validation for login credentials
+
+### 2.2 Authentication Routes
+- [ ] Create API routes in `routes/api.php`
+- [ ] Add POST `/api/login` route (public)
+- [ ] Add POST `/api/logout` route (protected with auth:sanctum)
+- [ ] Add GET `/api/user` route (protected with auth:sanctum)
+- [ ] Configure Sanctum SPA stateful domains in `config/sanctum.php`
+
+### 2.3 Seed User Creation
+- [ ] Create `DatabaseSeeder` for seed user
+- [ ] Add seeder to create user with email: `admin@example.com`, password: `password`
+- [ ] Run seeder: `php artisan db:seed`
+- [ ] Verify seed user exists in database
+
+### 2.4 Authentication Testing
+- [ ] Test login endpoint with valid credentials
+- [ ] Test login endpoint with invalid credentials
+- [ ] Test logout endpoint
+- [ ] Test user endpoint authentication
+- [ ] Verify Sanctum tokens are created and revoked correctly
+
+---
+
+## Phase 3: Yandex Parser Service & Job (./backend)
+
+### 3.1 Anti-Bot Protection Classes
+- [ ] Create `app/Services/UserAgentRotator.php` with pool of real browser user agents
+- [ ] Create `app/Services/RequestThrottler.php` with 1-3 second delays between requests
+- [ ] Create `app/Services/RetryWithBackoff.php` with exponential backoff logic
+- [ ] Create custom exception `app/Exceptions/RateLimitException.php`
+- [ ] Unit test UserAgentRotator returns different user agents
+- [ ] Unit test RequestThrottler enforces minimum delay
+
+### 3.2 Parser Exception
+- [ ] Create `app/Exceptions/ParsingStructureChangedException.php`
+- [ ] Add exception message template for structure change detection
+- [ ] Add exception logging logic
+
+### 3.3 YandexMapParserService
+- [ ] Create `app/Services/YandexMapParserService.php`
+- [ ] Implement `extractYandexId` method with regex for yandex.ru/maps URLs
+- [ ] Implement `fetchOrganizationData` method using Yandex AJAX API
+- [ ] Implement `fetchReviews` method with pagination support
+- [ ] Implement `parseReview` method to normalize review data
+- [ ] Implement `parseCompany` method orchestrating the parsing process
+- [ ] Add structure change detection logic (counter > 0 but reviews = 0)
+- [ ] Integrate UserAgentRotator, RequestThrottler, and RetryWithBackoff
+- [ ] Add request headers spoofing (User-Agent, Accept, Accept-Language, Referer)
+
+### 3.4 ParseYandexCompanyJob
+- [ ] Create `app/Jobs/ParseYandexCompanyJob.php` implementing ShouldQueue
+- [ ] Implement `handle` method with YandexMapParserService dependency injection
+- [ ] Add company status update logic (pending → processing → completed/failed)
+- [ ] Implement review storage with idempotency (update by external_id)
+- [ ] Create parsing log entry for job execution
+- [ ] Implement `failed` method for error handling
+- [ ] Configure queue connection to `yandex-parsing`
+- [ ] Set job timeout to 300 seconds
+- [ ] Set job retry attempts to 3
+
+### 3.5 Parser Testing
+- [ ] Unit test `extractYandexId` with valid URLs
+- [ ] Unit test `extractYandexId` with invalid URLs
+- [ ] Integration test `parseCompany` with real Yandex URL
+- [ ] Test structure change exception triggering
+- [ ] Test job execution via queue worker
+- [ ] Verify idempotency (no duplicate reviews)
+
+---
+
+## Phase 4: Company & Review API endpoints (./backend)
+
+### 4.1 CompanyController
+- [ ] Create `app/Http/Controllers/Api/CompanyController.php`
+- [ ] Implement `index` method to return all companies
+- [ ] Implement `store` method with URL validation (regex for yandex.ru/maps)
+- [ ] Implement `show` method to return single company with metrics
+- [ ] Implement `destroy` method to delete company with cascade
+- [ ] Implement `parse` method to dispatch ParseYandexCompanyJob
+- [ ] Implement `parsingStatus` method to return latest parsing log
+- [ ] Add validation for company creation (URL format, uniqueness of yandex_id)
+- [ ] Add check for concurrent parsing requests
+
+### 4.2 ReviewController
+- [ ] Create `app/Http/Controllers/Api/ReviewController.php`
+- [ ] Implement `index` method with server-side pagination (50 per page)
+- [ ] Implement `show` method to return single review
+- [ ] Add eager loading for company relationship
+- [ ] Add ordering by `review_created_at` desc
+- [ ] Add pagination metadata in response
+
+### 4.3 API Routes Configuration
+- [ ] Add company CRUD routes in `routes/api.php` (protected with auth:sanctum)
+- [ ] Add custom parsing routes (POST `/api/companies/{id}/parse`, GET `/api/companies/{id}/parsing-status`)
+- [ ] Add review routes (GET `/api/companies/{id}/reviews`, GET `/api/companies/{id}/reviews/{review_id}`)
+- [ ] Add route model binding for companies and reviews
+- [ ] Add middleware group for protected routes
+
+### 4.4 API Testing
+- [ ] Test company creation with valid URL
+- [ ] Test company creation with invalid URL
+- [ ] Test company listing
+- [ ] Test company details retrieval
+- [ ] Test company deletion
+- [ ] Test parsing job dispatch
+- [ ] Test parsing status retrieval
+- [ ] Test reviews listing with pagination
+- [ ] Test single review retrieval
+- [ ] Test authentication required for all protected routes
+
+---
+
+## Phase 5: Frontend Auth & Router (./frontend)
+
+### 5.1 Vue 3 Project Setup
+- [ ] Initialize Vue 3 project in `./frontend` directory with Vite
+- [ ] Install dependencies: Vue Router, Pinia, Axios
+- [ ] Configure `vite.config.js` with path aliases (@ → src)
+- [ ] Configure Vite proxy for `/api` to `http://localhost:8000`
+- [ ] Create `.env` file with `VITE_API_URL=http://localhost:8000/api`
+
+### 5.2 Axios Configuration
+- [ ] Create `src/services/api.js` with Axios instance
+- [ ] Configure `withCredentials: true` for Sanctum cookies
+- [ ] Add request interceptor for token handling
+- [ ] Add response interceptor for 401 redirect to login
+- [ ] Add default headers (Accept, Content-Type)
+
+### 5.3 Pinia Stores
+- [ ] Create `src/stores/auth.js` with useAuthStore
+- [ ] Implement `login` action calling `/api/login`
+- [ ] Implement `logout` action calling `/api/logout`
+- [ ] Implement `fetchUser` action calling `/api/user`
+- [ ] Add state for user and isAuthenticated
+- [ ] Create `src/stores/company.js` with useCompanyStore
+- [ ] Implement `fetchCompanies` action
+- [ ] Implement `createCompany` action
+- [ ] Implement `fetchCompany` action
+- [ ] Implement `fetchReviews` action with pagination
+- [ ] Implement `triggerParsing` action
+- [ ] Implement `fetchParsingStatus` action
+
+### 5.4 Vue Router Configuration
+- [ ] Create `src/router/index.js` with Vue Router setup
+- [ ] Define routes: /login, /dashboard, /organizations, /organizations/:id, /organizations/:id/parse
+- [ ] Add route guards for authentication (requiresAuth meta)
+- [ ] Configure navigation guards for redirect logic
+- [ ] Add lazy loading for route components
+
+### 5.5 Authentication Components
+- [ ] Create `src/components/LoginForm.vue` with email/password form
+- [ ] Add form validation for email and password
+- [ ] Add loading state for login button
+- [ ] Add error display for failed login
+- [ ] Create `src/views/LoginView.vue` using LoginForm component
+- [ ] Create `src/views/DashboardView.vue` with basic layout
+- [ ] Add logout button in DashboardView
+
+### 5.6 App Entry Point
+- [ ] Create `src/main.js` with Vue app initialization
+- [ ] Register Pinia, Router, and Axios
+- [ ] Create `src/App.vue` with router-view
+- [ ] Add basic CSS for layout
+
+### 5.7 Frontend Auth Testing
+- [ ] Test login form with valid credentials
+- [ ] Test login form with invalid credentials
+- [ ] Test redirect to login on 401
+- [ ] Test logout functionality
+- [ ] Test route guards for protected routes
+- [ ] Test Pinia store state persistence
+
+---
+
+## Phase 6: Frontend Settings & Parser View (./frontend)
+
+### 6.1 Company Components
+- [ ] Create `src/components/CompanyInput.vue` with URL input field
+- [ ] Add regex validation for yandex.ru/maps URLs
+- [ ] Add real-time validation feedback
+- [ ] Add loading state for submit button
+- [ ] Emit `company-added` event on success
+- [ ] Create `src/components/CompanyMetrics.vue` with rating display
+- [ ] Add star rating visualization
+- [ ] Add reviews count display
+- [ ] Add ratings count display
+- [ ] Add last parsed timestamp
+
+### 6.2 Parsing Components
+- [ ] Create `src/components/ParsingStatusBadge.vue` with status prop
+- [ ] Add color-coded badges (yellow=pending, blue=processing, green=completed, red=failed)
+- [ ] Add status text display
+- [ ] Add optional refresh button for in-progress jobs
+- [ ] Create `src/components/ReviewsList.vue` with reviews array prop
+- [ ] Add review card layout for each review
+- [ ] Add author name and avatar placeholder
+- [ ] Add rating stars display
+- [ ] Add review text display
+- [ ] Add review date formatting
+- [ ] Add empty state illustration
+- [ ] Add loading state prop
+
+### 6.3 Pagination Component
+- [ ] Create `src/components/Pagination.vue` with pagination props
+- [ ] Add Previous/Next buttons with disabled states
+- [ ] Add page number buttons
+- [ ] Add total count display
+- [ ] Emit `page-changed` event on navigation
+
+### 6.4 Company Views
+- [ ] Create `src/views/CompaniesListView.vue` with company list
+- [ ] Integrate CompanyInput component
+- [ ] Display company list with CompanyMetrics
+- [ ] Add ParsingStatusBadge for each company
+- [ ] Add delete button for each company
+- [ ] Create `src/views/CompanyDetailView.vue` with company details
+- [ ] Display CompanyMetrics
+- [ ] Add "Start Parsing" button
+- [ ] Integrate ReviewsList component
+- [ ] Integrate Pagination component
+- [ ] Add route parameter handling for company ID
+
+### 6.5 Parsing Status View
+- [ ] Create `src/views/ParsingStatusView.vue` with real-time status
+- [ ] Display parsing status with ParsingStatusBadge
+- [ ] Add reviews collected count
+- [ ] Add error message display (if failed)
+- [ ] Add auto-refresh for in-progress jobs (polling every 5 seconds)
+- [ ] Add "Back to Company" button
+- [ ] Add "Retry Parsing" button for failed jobs
+
+### 6.6 Utilities
+- [ ] Create `src/utils/validators.js` with URL validation helper
+- [ ] Add regex pattern for yandex.ru/maps URLs
+- [ ] Add email validation helper
+- [ ] Create `src/utils/formatters.js` with date formatting
+- [ ] Add relative time formatting (e.g., "2 hours ago")
+
+### 6.7 Frontend Integration Testing
+- [ ] Test company creation flow
+- [ ] Test company list display
+- [ ] Test company deletion
+- [ ] Test parsing trigger
+- [ ] Test parsing status polling
+- [ ] Test reviews list pagination
+- [ ] Test error handling for failed parsing
+- [ ] Test URL validation feedback
+
+---
+
+## Phase 7: Final README.md & Deployment Guide
+
+### 7.1 Backend README
+- [ ] Create `./backend/README.md` with setup instructions
+- [ ] Add PHP version requirements (8.1+)
+- [ ] Add Composer installation steps
+- [ ] Add environment configuration steps
+- [ ] Add migration commands
+- [ ] Add queue worker start command
+- [ ] Add troubleshooting section
+
+### 7.2 Frontend README
+- [ ] Create `./frontend/README.md` with setup instructions
+- [ ] Add Node.js version requirements (18+)
+- [ ] Add npm installation steps
+- [ ] Add development server start command
+- [ ] Add build command for production
+- [ ] Add environment variables documentation
+
+### 7.3 Root README.md
+- [ ] Create root `README.md` with project overview
+- [ ] Add system requirements (PHP 8.1+, Node.js 18+, MySQL 8.0+)
+- [ ] Add project structure description
+- [ ] Add installation steps for both backend and frontend
+- [ ] Add usage instructions
+- [ ] Add API documentation reference to `.sdd/spec.md`
+- [ ] Add architecture reference to `.sdd/plan.md`
+- [ ] Add task checklist reference to `.sdd/tasks.md`
+
+### 7.4 Deployment Guide (No Docker)
+- [ ] Document backend deployment: `php artisan serve --host=0.0.0.0 --port=8000`
+- [ ] Document frontend deployment: `npm run dev` (development) or `npm run build` (production)
+- [ ] Add database migration steps for production
+- [ ] Add queue worker startup instructions for production
+- [ ] Add environment variable configuration for production
+- [ ] Add security considerations (change default passwords, configure CORS)
+- [ ] Add troubleshooting common issues
+
+### 7.5 Final Verification
+- [ ] Test complete user flow: login → add company → parse → view reviews
+- [ ] Verify all API endpoints are working
+- [ ] Verify frontend-backend integration
+- [ ] Test error handling scenarios
+- [ ] Verify queue worker processes jobs correctly
+- [ ] Test pagination functionality
+- [ ] Verify idempotency (no duplicate reviews)
+- [ ] Test structure change detection
+- [ ] Performance test with multiple companies
+- [ ] Security audit (SQL injection, XSS, CSRF)
+
+---
+
+## Task Status Summary
+
+### Backend Tasks (Phases 1-4)
+- Total tasks: 45
+- Completed: 0
+- In Progress: 0
+- Pending: 45
+
+### Frontend Tasks (Phases 5-6)
+- Total tasks: 35
+- Completed: 0
+- In Progress: 0
+- Pending: 35
+
+### Documentation Tasks (Phase 7)
+- Total tasks: 10
+- Completed: 0
+- In Progress: 0
+- Pending: 10
+
+### Overall Progress
+- Total tasks: 90
+- Completed: 0 (0%)
+- In Progress: 0 (0%)
+- Pending: 90 (100%)
+
+---
+
+## Notes
+
+- Each task is atomic and can be verified independently
+- Tasks are ordered by dependency (complete previous tasks before starting next)
+- All backend tasks are in `./backend` directory
+- All frontend tasks are in `./frontend` directory
+- Deployment uses standard Laravel and Vite commands (no Docker)
+- Queue worker must be running for parsing functionality
+- Database connection uses MySQL at 127.0.0.1:3306

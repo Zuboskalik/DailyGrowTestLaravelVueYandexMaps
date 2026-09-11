@@ -1,228 +1,259 @@
-# Функциональная спецификация: Яндекс.Карты Парсер Отзывов
+# Functional Specification
 
-## 1. Авторизация
+## System Overview
 
-### 1.1 Механизм аутентификации
-- Использовать Laravel Sanctum SPA authentication
-- Токен передается через Authorization заголовок (Bearer token)
-- Токен хранится на фронтенде в localStorage
+Application for collecting reviews from Yandex.Maps with SDD methodology.
 
-### 1.2 Пользовательская система
-- Создать фиксированного seed-пользователя в базе данных
-- Пользователь должен иметь доступ ко всем функциям системы
-- Регистрация новых пользователей не требуется
-- Восстановление пароля не требуется
+**Architecture:**
+- Monorepository without Docker
+- Backend: Laravel (SPA Auth via Sanctum, SQLite/MySQL, Queues)
+- Frontend: Vue 3 (Composition API, Pinia, Vue Router)
+- Documentation: ./.sdd/
 
-### 1.3 Процесс входа
-- Экран входа по пути `/login`
-- Форма авторизации требует email и пароль
-- При успешной авторизации перенаправление на `/dashboard`
-- При неудачной авторизации отображение ошибки
+**Test Database:**
+- Server: 127.0.0.1:3306
+- Database: DailyGrowTestLaravel
+- Login: mysql
+- Password: mysql
 
-### 1.4 Управление сессией
-- Проверка актуальности токена при каждом запросе к API
-- Автоматический разлогин при истечении токена
-- Кнопка выхода в интерфейсе
+---
 
-## 2. Настройки и интеграция
+## User Stories
 
-### 2.1 Управление компаниями
-- Пользователь может добавить компанию для отслеживания
-- Пользователь может просмотреть список добавленных компаний
-- Пользователь может удалить компанию из списка
+### 1. Seed User Login
+**Priority:** High
 
-### 2.2 Ввод URL Яндекс.Карт
-- Поле ввода для URL страницы компании на Яндекс.Картах
-- Пример формата: `https://yandex.ru/maps/123/moscow/organization/456/reviews/`
-- Поддержка различных вариаций URL Яндекс.Карт
+**Description:** As a seed user, I need to log in to the application to access the review collection functionality.
 
-### 2.3 Валидация URL
-- Проверка корректности формата URL
-- Проверка принадлежности к домену Яндекс.Карт
-- Проверка наличия идентификатора организации в URL
-- Отображение ошибок валидации пользователю
+**Acceptance Criteria:**
+- User can authenticate via SPA Auth using Laravel Sanctum
+- Session management is handled by the frontend
+- User can log out
+- Unauthorized users are redirected to login page
 
-### 2.4 Сохранение компании
-- При успешной валидации сохранение URL в базе данных
-- Генерация уникального идентификатора компании в системе
-- Возможность добавления описания/названия компании (опционально)
+---
 
-## 3. Парсинг и обработка данных
+### 2. Add Yandex.Maps Organization Link
+**Priority:** High
 
-### 3.1 Сбор данных о компании
-- Получение общего рейтинга компании
-- Получение общего количества оценок
-- Получение общего количества отзывов
-- Обновление данных в базе данных при каждом парсинге
+**Description:** As an authenticated user, I need to add a Yandex.Maps organization link to start parsing reviews.
 
-### 3.2 Сбор отзывов
-- Сбор до 600 отзывов за один сеанс парсинга
-- Получение текста отзыва
-- Получение даты публикации отзыва
-- Получение рейтинга отзыва (звезды)
-- Получение имени автора отзыва
-- Получение уникального идентификатора отзыва (external_id)
+**Acceptance Criteria:**
+- User can input a Yandex.Maps organization URL
+- URL is validated using regex patterns for yandex.ru/maps formats
+- Supported URL formats:
+  - `https://yandex.ru/maps/org/organization-name/1234567890/`
+  - `https://yandex.ru/maps/123/city/?ll=xxx.xxx,yyy.yyy&z=12&pt=xxx.xxx,yyy.yyy,point`
+- Invalid URLs show appropriate error messages
+- Valid URLs are saved to the database
 
-### 3.3 Методы парсинга
-- **Основной метод**: Внутренний AJAX/JSON API Яндекса
-  - Перехват и анализ сетевых запросов браузера
-  - Использование найденных JSON-endpoints для получения данных
-  - Предпочтительный подход при стабильности API
+---
 
-- **Фоллбэк метод**: Headless Playwright
-  - Запуск безголового браузера
-  - Эмуляция действий пользователя на странице
-  - Извлечение данных из DOM
-  - Использование при недоступности или изменении AJAX API
+### 3. Asynchronous Parsing with Status Tracking
+**Priority:** High
 
-### 3.4 Ограничения и устойчивость
-- Лимит количества отзывов за парсинг: ~600
-- Таймауты на запросы к Яндексу
-- Обработка ошибок сети
-- Обработка ошибок валидации данных
-- Логирование всех сбоев в таблицу `parser_error`
+**Description:** As an authenticated user, I need to trigger async parsing of reviews and track its progress.
 
-### 3.5 Логирование сбоев
-- Сохранение типа ошибки (network, validation, parsing, etc.)
-- Сохранение описания ошибки
-- Сохранение URL компании
-- Сохранение timestamp ошибки
-- Возможность просмотра логов ошибок в админке
+**Acceptance Criteria:**
+- Parsing is executed via Laravel Queue Jobs
+- Parsing status is displayed in real-time with one of the following states:
+  - **Pending** - Job queued, waiting to start
+  - **Processing** - Job is actively parsing reviews
+  - **Completed** - Parsing finished successfully
+  - **Failed** - Parsing encountered an error
+- Status updates are reflected in the UI without page refresh
+- User can re-trigger parsing for failed jobs
 
-### 3.6 Кеширование результатов
-- Сохранение результатов парсинга в базе данных
-- Дедупликация отзывов по `external_id`
-- При наличии отзыва с тем же `external_id` - игнорирование или обновление
-- Идемпотентность операций парсинга (повторный запуск не создает дубликаты)
+---
 
-## 4. Асинхронность и очереди
+### 4. View Reviews List with Pagination
+**Priority:** High
 
-### 4.1 Очереди задач
-- Парсинг выполняется через Laravel Queue (Jobs)
-- Каждая задача парсинга компании ставится в отдельную очередь
-- Возможность запуска нескольких задач парсинга параллельно
+**Description:** As an authenticated user, I need to view a paginated list of collected reviews with key metrics.
 
-### 4.2 Статусы задачи
-- **pending**: Задача создана, ожидает выполнения
-- **processing**: Задача выполняется в данный момент
-- **completed**: Задача успешно завершена
-- **failed**: Задача завершилась с ошибкой
+**Acceptance Criteria:**
+- Reviews are displayed in a list format
+- Server-side pagination (50 reviews per page)
+- Each review displays:
+  - Rating (stars or numeric)
+  - Number of ratings
+  - Number of reviews
+  - Review text (if available)
+  - Review date
+- Pagination controls allow navigation between pages
+- Total count of reviews is displayed
+- Empty state is shown when no reviews exist
 
-### 4.3 Управление задачами
-- Пользователь может запустить парсинг для выбранной компании
-- Пользователь может просмотреть список активных задач
-- Пользователь может отменить задачу в статусе pending
-- Автоматический переход между статусами
+---
 
-### 4.4 Отображение прогресса
-- Текущий статус задачи на фронтенде
-- Количество собранных отзывов (если доступно)
-- Прогресс-бар для визуализации прогресса
-- Ошибка при статусе failed
+## Parsing Rules & Business Logic
 
-## 5. Интерфейс пользователя
+### 1. Review Collection Limits
+- Collect up to ~600 reviews per organization
+- Parsing stops when the limit is reached or no more reviews are available
 
-### 5.1 Общая навигация
-- Vue 3 SPA с Composition API
-- Vue Router для навигации
-- Защищенные маршруты требуют авторизации
+### 2. Idempotency
+- Reviews are updated based on `external_id` (Yandex.Maps review ID)
+- Duplicate reviews are prevented:
+  - If a review with the same `external_id` exists, update its content
+  - Never create duplicate entries for the same external_id
+- Each organization can have only one active parsing job at a time
 
-### 5.2 Экран авторизации (/login)
-- Форма с полями email и пароль
-- Кнопка входа
-- Отображение ошибок валидации
-- Ссылка на регистрацию (отключена или скрыта)
+### 3. Structure Change Detection
+- **ParsingStructureChangedException** is thrown when:
+  - Parser returns 0 reviews
+  - Yandex.Marts counter shows > 0 reviews
+  - This indicates a change in Yandex.Maps HTML structure
+- Exception logs the incident for manual review
+- User is notified about the structure change
 
-### 5.3 Экран дашборда (/dashboard)
-- Боковая панель навигации
-- Основная область контента
+---
 
-### 5.4 Управление настройками
-- Список добавленных компаний
-- Форма добавления новой компании
-- Кнопка удаления компании
-- Кнопка запуска парсинга для компании
-- Статус последнего парсинга
+## Edge Cases & Failure Handling
 
-### 5.5 Просмотр отзывов
-- Таблица с отзывами
-- Пагинация: 50 отзывов на страницу
-- Пагинация на стороне БД/API (offset/limit)
-- Отображение колонок: автор, текст, рейтинг, дата
-- Возможность сортировки по дате
+### 1. URL Validation Errors
+- **Scenario:** User enters invalid Yandex.Maps URL
+- **Handling:**
+  - Frontend validation with regex
+  - Backend validation confirms URL format
+  - Clear error message: "Invalid Yandex.Maps URL format"
+  - URL is not saved to database
 
-### 5.6 Фильтры и поиск
-- Фильтрация по рейтингу (от 1 до 5 звезд)
-- Фильтрация по диапазону дат
-- Поиск по тексту отзыва
-- Поиск по имени автора
+### 2. Yandex.Maps Ban/Rate Limiting
+- **Scenario:** Yandex blocks requests due to rate limiting
+- **Handling:**
+  - Job status changes to "Failed"
+  - Error is logged with details
+  - User notification: "Yandex.Marts blocked the request. Please try again later."
+  - Exponential backoff for retry (if configured)
 
-### 5.7 Статистика
-- Общее количество отзывов
-- Средний рейтинг
-- Распределение отзывов по звездам
-- Дата последнего парсинга
+### 3. Request Timeouts
+- **Scenario:** Yandex.Maps request exceeds timeout threshold
+- **Handling:**
+  - Job status changes to "Failed"
+  - Timeout is logged
+  - User notification: "Request timeout. The service may be unavailable."
+  - Partial results (if any) are preserved
 
-### 5.8 Индикация прогресса
-- Прогресс-бар при активном парсинге
-- Текстовый статус задачи
-- Отображение ошибок при failed статусе
-- Автоматическое обновление статуса (polling или websocket)
+### 4. Empty Reviews
+- **Scenario:** Parsing completes but no reviews are found
+- **Handling:**
+  - Check if Yandex.Maps counter shows > 0 reviews
+  - If counter > 0 and parser returns 0 → Throw ParsingStructureChangedException
+  - If counter = 0 and parser returns 0 → Mark as "Completed" with message "No reviews found"
+  - User is informed of the outcome
 
-### 5.9 Обработка ошибок
-- Отображение ошибок API в интерфейсе
-- Уведомления о завершении парсинга
-- Уведомления о сбоях парсинга
-- Возможность повторного запуска при ошибке
+### 5. Network Errors
+- **Scenario:** Network connectivity issues during parsing
+- **Handling:**
+  - Job status changes to "Failed"
+  - Error is logged with stack trace
+  - User notification: "Network error occurred. Please check your connection."
+  - Job can be retried manually by the user
 
-## 6. Хранение данных
+### 6. Malformed Review Data
+- **Scenario:** Review data is incomplete or corrupted
+- **Handling:**
+  - Skip malformed reviews and log warnings
+  - Continue parsing remaining reviews
+  - Partial results are saved
+  - User is notified about skipped reviews
 
-### 6.1 Основные сущности
-- `users`: Пользователи системы
-- `companies`: Компании для отслеживания
-- `reviews`: Отзывы компаний
-- `parser_errors`: Логи ошибок парсера
-- `parse_jobs`: Задачи парсинга
+### 7. Concurrent Parsing Requests
+- **Scenario:** User triggers parsing while another job is in progress
+- **Handling:**
+  - Reject new parsing request for the same organization
+  - User notification: "Parsing is already in progress for this organization"
+  - Current job status is displayed
 
-### 6.2 Поля компании
-- id
-- url (URL Яндекс.Карт)
-- name (название компании, опционально)
-- rating (текущий рейтинг)
-- reviews_count (количество отзывов)
-- ratings_count (количество оценок)
-- last_parsed_at (дата последнего парсинга)
-- created_at
-- updated_at
+---
 
-### 6.3 Поля отзыва
-- id
-- company_id
-- external_id (идентификатор от Яндекса)
-- author_name
-- text
-- rating (1-5)
-- published_at
-- created_at
-- updated_at
+## Data Models
 
-### 6.4 Поля задачи парсинга
-- id
-- company_id
-- status (pending, processing, completed, failed)
-- reviews_collected (количество собранных отзывов)
-- error_message (текст ошибки при failed)
-- started_at
-- completed_at
-- created_at
-- updated_at
+### Organization
+- `id` - Primary key
+- `url` - Yandex.Marts organization URL
+- `external_id` - Yandex.Marts organization ID
+- `name` - Organization name (optional)
+- `created_at` - Timestamp
+- `updated_at` - Timestamp
 
-### 6.5 Поля ошибки парсера
-- id
-- company_id
-- parse_job_id
-- error_type
-- error_message
-- url
-- stack_trace (опционально)
-- created_at
+### Review
+- `id` - Primary key
+- `organization_id` - Foreign key to Organization
+- `external_id` - Yandex.Marts review ID (unique per organization)
+- `rating` - Review rating (1-5)
+- `text` - Review text (nullable)
+- `author` - Author name (nullable)
+- `date` - Review date
+- `created_at` - Timestamp
+- `updated_at` - Timestamp
+
+### ParsingJob
+- `id` - Primary key
+- `organization_id` - Foreign key to Organization
+- `status` - Job status (Pending, Processing, Completed, Failed)
+- `error_message` - Error details (nullable)
+- `reviews_collected` - Number of reviews collected
+- `started_at` - Timestamp (nullable)
+- `completed_at` - Timestamp (nullable)
+- `created_at` - Timestamp
+- `updated_at` - Timestamp
+
+---
+
+## API Endpoints
+
+### Authentication
+- `POST /api/login` - Authenticate user
+- `POST /api/logout` - Logout user
+- `GET /api/user` - Get current user info
+
+### Organizations
+- `GET /api/organizations` - List organizations
+- `POST /api/organizations` - Create organization
+- `GET /api/organizations/{id}` - Get organization details
+- `DELETE /api/organizations/{id}` - Delete organization
+
+### Parsing
+- `POST /api/organizations/{id}/parse` - Trigger parsing
+- `GET /api/organizations/{id}/parsing-status` - Get parsing status
+
+### Reviews
+- `GET /api/organizations/{id}/reviews` - Get paginated reviews list
+- `GET /api/organizations/{id}/reviews/{review_id}` - Get specific review
+
+---
+
+## Frontend Routes
+
+- `/login` - Login page
+- `/dashboard` - Main dashboard
+- `/organizations` - Organizations list
+- `/organizations/{id}` - Organization details with reviews
+- `/organizations/{id}/parse` - Parsing status page
+
+---
+
+## Non-Functional Requirements
+
+### Performance
+- UI response time < 200ms for navigation
+- API response time < 500ms for typical requests
+- Parsing job should complete within 5 minutes for 600 reviews
+
+### Security
+- All API endpoints require authentication (except login)
+- SQL injection prevention via parameterized queries
+- XSS prevention via input sanitization
+- CSRF protection for state-changing operations
+
+### Reliability
+- 99% uptime for API endpoints
+- Failed jobs are logged and recoverable
+- Database transactions for critical operations
+
+### Scalability
+- Support for multiple concurrent parsing jobs
+- Database indexing for efficient queries
+- Queue system for async processing
